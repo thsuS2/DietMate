@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
-import { getThisWeek, getLastWeek, formatDateKorean } from '../../utils/date';
+import { getWeekByOffset, formatDateKorean, formatDateShort, isCurrentWeek } from '../../utils/date';
 import useRecordStore from '../../store/useRecordStore';
 import useSettingsStore from '../../store/useSettingsStore';
 import { AppCard, AppText, AppButton, AppModal } from '../../components/common';
@@ -9,7 +9,7 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 const StatsScreen = () => {
-  const [selectedWeek, setSelectedWeek] = useState('this'); // 'this' | 'last'
+  const [weekOffset, setWeekOffset] = useState(0); // 0: 이번주, -1: 지난주, -2: 2주전...
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
 
@@ -18,9 +18,8 @@ const StatsScreen = () => {
   const { settings } = useSettingsStore();
 
   // 주간 범위
-  const thisWeek = getThisWeek();
-  const lastWeek = getLastWeek();
-  const weekRange = selectedWeek === 'this' ? thisWeek : lastWeek;
+  const weekRange = getWeekByOffset(weekOffset);
+  const isThisWeek = isCurrentWeek(weekRange.start, weekRange.end);
 
   // 통계 데이터
   const stats = getWeeklyStats(weekRange.start, weekRange.end, settings);
@@ -68,33 +67,44 @@ const StatsScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 주간 선택 */}
-      <View style={styles.weekSelector}>
-        <AppButton
-          variant={selectedWeek === 'this' ? 'contained' : 'outlined'}
-          colorTheme="primary"
-          size="small"
-          onPress={() => setSelectedWeek('this')}
-          style={styles.weekButton}
+      {/* 주간 네비게이션 */}
+      <View style={styles.weekNavigation}>
+        {/* 지난주 버튼 */}
+        <TouchableOpacity
+          onPress={() => setWeekOffset(weekOffset - 1)}
+          style={styles.navButton}
         >
-          이번주
-        </AppButton>
-        <AppButton
-          variant={selectedWeek === 'last' ? 'contained' : 'outlined'}
-          colorTheme="primary"
-          size="small"
-          onPress={() => setSelectedWeek('last')}
-          style={styles.weekButton}
+          <AppText variant="h2" color="primary">←</AppText>
+        </TouchableOpacity>
+
+        {/* 주간 범위 표시 */}
+        <View style={styles.weekRangeContainer}>
+          <AppText variant="body1" bold align="center">
+            {formatDateShort(weekRange.start)} ~ {formatDateShort(weekRange.end)}
+          </AppText>
+          {isThisWeek && (
+            <AppText variant="caption" color="primary" align="center" style={styles.thisWeekBadge}>
+              이번주
+            </AppText>
+          )}
+        </View>
+
+        {/* 다음주 버튼 */}
+        <TouchableOpacity
+          onPress={() => setWeekOffset(weekOffset + 1)}
+          disabled={isThisWeek}
+          style={styles.navButton}
         >
-          지난주
-        </AppButton>
+          <AppText 
+            variant="h2" 
+            color={isThisWeek ? 'textSecondary' : 'primary'}
+          >
+            →
+          </AppText>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
-        {/* 기간 표시 */}
-        <AppText variant="body2" color="textSecondary" align="center" style={styles.dateRange}>
-          {formatDateKorean(weekRange.start)} ~ {formatDateKorean(weekRange.end)}
-        </AppText>
 
         {/* 주간 요약 카드 */}
         <AppCard variant="elevated" elevation="md" style={styles.card}>
@@ -342,25 +352,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  weekSelector: {
+  weekNavigation: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
-    gap: spacing.sm,
   },
-  weekButton: {
+  navButton: {
+    padding: spacing.sm,
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekRangeContainer: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thisWeekBadge: {
+    marginTop: spacing.xs,
   },
   content: {
     flex: 1,
     padding: spacing.md,
-  },
-  dateRange: {
-    marginBottom: spacing.md,
   },
   card: {
     marginBottom: spacing.md,

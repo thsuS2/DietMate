@@ -85,6 +85,42 @@ export const getNextWeek = () => {
 };
 
 /**
+ * 오프셋을 기준으로 주간 범위 반환 (0: 이번주, -1: 지난주, 1: 다음주)
+ */
+export const getWeekByOffset = (offset = 0) => {
+  const today = new Date();
+  const targetWeek = addWeeks(today, offset);
+  const start = startOfWeek(targetWeek, { weekStartsOn: 1 });
+  const end = endOfWeek(targetWeek, { weekStartsOn: 1 });
+  
+  return {
+    start: formatDate(start),
+    end: formatDate(end),
+  };
+};
+
+/**
+ * 날짜를 짧은 형식으로 변환 (예: 2025.11.10)
+ */
+export const formatDateShort = (date) => {
+  return format(new Date(date), 'yyyy.MM.dd');
+};
+
+/**
+ * 오늘이 특정 주간 범위에 포함되는지 확인
+ */
+export const isCurrentWeek = (startDate, endDate) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+  
+  return today >= start && today <= end;
+};
+
+/**
  * 특정 주의 모든 날짜 배열 반환
  */
 export const getWeekDays = (startDate, endDate) => {
@@ -156,6 +192,9 @@ export default {
   getThisWeek,
   getLastWeek,
   getNextWeek,
+  getWeekByOffset,
+  formatDateShort,
+  isCurrentWeek,
   getWeekDays,
   getDaysBetween,
   getDday,
