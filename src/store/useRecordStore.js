@@ -188,11 +188,73 @@ const useRecordStore = create((set, get) => ({
       const dateStr = d.toISOString().split('T')[0];
       weeklyRecords.push({
         date: dateStr,
-        data: records[dateStr] || { meals: [], exercise: null, weight: null, water: 0, memo: '' },
+        data: records[dateStr] || { meals: [], exercises: [], weight: null, water: 0, waterHistory: [], memo: '' },
       });
     }
     
     return weeklyRecords;
+  },
+
+  // 주간 통계 계산
+  getWeeklyStats: (startDate, endDate, settings = {}) => {
+    const weeklyRecords = get().getWeeklyRecords(startDate, endDate);
+    const dailyWaterGoal = settings.dailyWaterGoal || 2000;
+    
+    // 수분 통계
+    const waterData = weeklyRecords.map(r => r.data.water || 0);
+    const totalWater = waterData.reduce((sum, w) => sum + w, 0);
+    const averageWater = totalWater / 7;
+    const waterGoalDays = waterData.filter(w => w >= dailyWaterGoal).length;
+    const waterGoalRate = waterGoalDays / 7;
+
+    // 운동 통계
+    const exerciseData = weeklyRecords.map(r => {
+      const exercises = r.data.exercises || [];
+      return exercises.reduce((sum, ex) => sum + (ex.duration || 0), 0);
+    });
+    const totalExerciseTime = exerciseData.reduce((sum, t) => sum + t, 0);
+    const exerciseDays = exerciseData.filter(t => t > 0).length;
+
+    // 몸무게 통계
+    const weights = weeklyRecords
+      .map(r => r.data.weight)
+      .filter(w => w !== null && w !== undefined);
+    const startWeight = weights.length > 0 ? weights[0] : null;
+    const endWeight = weights.length > 0 ? weights[weights.length - 1] : null;
+    const weightChange = startWeight && endWeight ? endWeight - startWeight : 0;
+
+    // 기록 빈도
+    const recordedDays = weeklyRecords.filter(r => {
+      const data = r.data;
+      return data.water > 0 || 
+             (data.meals && data.meals.length > 0) || 
+             (data.exercises && data.exercises.length > 0) ||
+             data.weight !== null ||
+             data.memo;
+    }).length;
+    const recordRate = recordedDays / 7;
+
+    return {
+      water: {
+        total: totalWater,
+        average: Math.round(averageWater),
+        dailyData: waterData,
+        goalRate: waterGoalRate,
+      },
+      exercise: {
+        totalTime: totalExerciseTime,
+        count: exerciseDays,
+        dailyData: exerciseData,
+      },
+      weight: {
+        start: startWeight,
+        end: endWeight,
+        change: weightChange,
+        data: weights,
+      },
+      recordRate,
+      recordedDays,
+    };
   },
 }));
 
