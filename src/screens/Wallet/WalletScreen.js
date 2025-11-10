@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import useWalletStore from '../../store/useWalletStore';
 import { getTodayString, formatDateShort, getThisWeek } from '../../utils/date';
 import { AppCard, AppText, AppButton, AppProgressBar } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { PieChart } from 'react-native-chart-kit';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import TransactionAddModal from './TransactionAddModal';
 
 const WalletScreen = () => {
+  const navigation = useNavigation();
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [periodType, setPeriodType] = useState('month'); // 'day' | 'week' | 'month'
   const [selectedMonth, setSelectedMonth] = useState(getTodayString().substring(0, 7)); // '2025-11'
@@ -19,8 +22,8 @@ const WalletScreen = () => {
     categories,
     getMonthTransactions, 
     getTransactionsByPeriod,
-    getStatistics,
-    getCategoryById,
+    getGroupedStatistics,
+    getCategoryWithParent,
     loadWallet,
   } = useWalletStore();
 
@@ -29,8 +32,8 @@ const WalletScreen = () => {
     loadWallet();
   }, []);
 
-  // 통계 데이터
-  const stats = getStatistics(selectedMonth);
+  // 통계 데이터 (1차 카테고리로 그룹핑)
+  const groupedStats = getGroupedStatistics(selectedMonth);
   const monthTransactions = getMonthTransactions(selectedMonth);
 
   // 오늘 거래
@@ -47,14 +50,14 @@ const WalletScreen = () => {
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  // 도넛 차트 데이터
-  const pieChartData = stats.categoryRatios
-    .filter(cat => cat.amount > 0)
+  // 도넛 차트 데이터 (1차 카테고리 기준)
+  const pieChartData = groupedStats.groups
+    .filter(group => group.amount > 0)
     .slice(0, 5) // 상위 5개만
-    .map(cat => ({
-      name: cat.categoryName,
-      amount: cat.amount,
-      color: cat.color,
+    .map(group => ({
+      name: group.name,
+      amount: group.amount,
+      color: group.color,
       legendFontColor: colors.text,
       legendFontSize: 12,
     }));
@@ -72,20 +75,31 @@ const WalletScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Header with Settings Button */}
+      <View style={styles.header}>
+        <AppText variant="h2">💰 가계부</AppText>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CategorySettings')}
+          style={styles.settingsButton}
+        >
+          <MaterialCommunityIcons name="cog" size={24} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.scrollView}>
         {/* 예산 카드 */}
         <AppCard variant="elevated" elevation="md" style={styles.budgetCard}>
           <View style={styles.budgetHeader}>
-            <AppText variant="h3">💰 이번 달 예산</AppText>
+            <AppText variant="h3">📊 이번 달 예산</AppText>
             <AppText variant="h2" color="wallet">
-              {stats.totalExpense.toLocaleString()}원
+              {groupedStats.totalExpense.toLocaleString()}원
             </AppText>
           </View>
           <AppText variant="body2" color="textSecondary" align="right">
             예산: {budget.monthly.toLocaleString()}원
           </AppText>
           <AppProgressBar
-            progress={stats.budgetUsage}
+            progress={groupedStats.totalExpense / budget.monthly}
             colorTheme="wallet"
             height={12}
             showPercentage={true}
@@ -142,7 +156,7 @@ const WalletScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <AppCard variant="elevated" elevation="sm" style={styles.summaryCard}>
+          <AppCard variant="elevated" elevation="sm" style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <AppText variant="caption" color="textSecondary">
@@ -153,7 +167,7 @@ const WalletScreen = () => {
                   ? todayExpense.toLocaleString()
                   : periodType === 'week'
                   ? weekExpense.toLocaleString()
-                  : stats.totalExpense.toLocaleString()}원
+                  : groupedStats.totalExpense.toLocaleString()}원
               </AppText>
             </View>
           </View>
@@ -178,24 +192,24 @@ const WalletScreen = () => {
               absolute
             />
             
-            {/* 카테고리 목록 */}
+            {/* 카테고리 목록 (1차 카테고리) */}
             <View style={styles.categoryList}>
-              {stats.categoryRatios.slice(0, 5).map((cat) => (
-                <View key={cat.categoryId} style={styles.categoryItem}>
+              {groupedStats.groups.slice(0, 5).map((group) => (
+                <View key={group.id} style={styles.categoryItem}>
                   <View style={styles.categoryInfo}>
                     <View
-                      style={[styles.categoryDot, { backgroundColor: cat.color }]}
+                      style={[styles.categoryDot, { backgroundColor: group.color }]}
                     />
                     <AppText variant="body2">
-                      {cat.icon} {cat.categoryName}
+                      {group.icon} {group.name}
                     </AppText>
                   </View>
                   <View style={styles.categoryAmount}>
                     <AppText variant="body2" bold>
-                      {cat.amount.toLocaleString()}원
+                      {group.amount.toLocaleString()}원
                     </AppText>
                     <AppText variant="caption" color="textSecondary">
-                      {Math.round(cat.ratio * 100)}%
+                      {Math.round(group.ratio * 100)}%
                     </AppText>
                   </View>
                 </View>
@@ -229,7 +243,15 @@ const WalletScreen = () => {
                 </View>
 
                 {groupedTransactions[date].map((txn) => {
-                  const cat = getCategoryById(txn.category);
+                  const catInfo = getCategoryWithParent(txn.category);
+                  const displayCat = catInfo?.category;
+                  const parentCat = catInfo?.parent;
+                  
+                  // 표시용: 2차가 있으면 "1차 > 2차", 없으면 "1차"
+                  const displayName = parentCat 
+                    ? `${parentCat.name} > ${displayCat?.name}`
+                    : displayCat?.name || '기타';
+                  
                   return (
                     <TouchableOpacity
                       key={txn.id}
@@ -239,13 +261,13 @@ const WalletScreen = () => {
                         <View
                           style={[
                             styles.categoryIcon,
-                            { backgroundColor: cat?.color || colors.walletEtc },
+                            { backgroundColor: displayCat?.color || colors.walletEtc },
                           ]}
                         >
-                          <AppText variant="body1">{cat?.icon || '💸'}</AppText>
+                          <AppText variant="body1">{displayCat?.icon || '💸'}</AppText>
                         </View>
-                        <View>
-                          <AppText variant="body2">{cat?.name || '기타'}</AppText>
+                        <View style={styles.transactionInfo}>
+                          <AppText variant="body2">{displayName}</AppText>
                           {txn.memo && (
                             <AppText variant="caption" color="textSecondary">
                               {txn.memo}
@@ -302,6 +324,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  settingsButton: {
+    padding: spacing.xs,
   },
   scrollView: {
     flex: 1,
@@ -422,6 +457,9 @@ const styles = StyleSheet.create({
     borderRadius: spacing.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  transactionInfo: {
+    flex: 1,
   },
   emptyState: {
     paddingVertical: spacing.xxl,

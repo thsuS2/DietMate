@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors } from '../theme/colors';
 
@@ -9,9 +10,32 @@ import HomeScreen from '../screens/Home/HomeScreen';
 import RecordScreen from '../screens/Record/RecordScreen';
 import StatsScreen from '../screens/Stats/StatsScreen';
 import WalletScreen from '../screens/Wallet/WalletScreen';
+import CategorySettingsScreen from '../screens/Wallet/CategorySettingsScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
+const WalletStack = createNativeStackNavigator();
+
+// Wallet Stack Navigator
+const WalletStackNavigator = () => {
+  return (
+    <WalletStack.Navigator>
+      <WalletStack.Screen 
+        name="WalletMain" 
+        component={WalletScreen}
+        options={{ headerShown: false }}
+      />
+      <WalletStack.Screen 
+        name="CategorySettings" 
+        component={CategorySettingsScreen}
+        options={{ 
+          title: '카테고리 관리',
+          headerTintColor: colors.primary,
+        }}
+      />
+    </WalletStack.Navigator>
+  );
+};
 
 const AppNavigator = () => {
   return (
@@ -65,8 +89,11 @@ const AppNavigator = () => {
         />
         <Tab.Screen 
           name="Wallet" 
-          component={WalletScreen} 
-          options={{ title: '가계부' }}
+          component={WalletStackNavigator} 
+          options={{ 
+            title: '가계부',
+            headerShown: false,
+          }}
         />
         <Tab.Screen 
           name="Settings" 

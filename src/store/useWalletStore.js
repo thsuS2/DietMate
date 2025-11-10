@@ -6,18 +6,38 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * 수입/지출, 예산, 카테고리 관리
  */
 
-// 기본 카테고리
+// 기본 카테고리 (계층 구조)
 const DEFAULT_CATEGORIES = [
-  { id: 'income', name: '수입', type: 'income', color: '#4CAF50', icon: '💰' },
-  { id: 'salary', name: '급여', type: 'income', color: '#66BB6A', icon: '💵' },
-  { id: 'food', name: '식비', type: 'expense', color: '#FF6B6B', icon: '🍽️' },
-  { id: 'delivery', name: '배달음식', type: 'expense', color: '#FF8787', icon: '🛵' },
-  { id: 'cafe', name: '카페', type: 'expense', color: '#FFD93D', icon: '☕' },
-  { id: 'transport', name: '교통', type: 'expense', color: '#9B59B6', icon: '🚗' },
-  { id: 'shopping', name: '쇼핑', type: 'expense', color: '#4ECDC4', icon: '🛍️' },
-  { id: 'health', name: '의료/건강', type: 'expense', color: '#3498DB', icon: '🏥' },
-  { id: 'culture', name: '문화/여가', type: 'expense', color: '#E74C3C', icon: '🎬' },
-  { id: 'etc', name: '기타', type: 'expense', color: '#95A5A6', icon: '💸' },
+  // ========================================
+  // 수입 - 1차 카테고리
+  // ========================================
+  { 
+    id: 'income', 
+    name: '수입', 
+    type: 'income', 
+    color: '#4CAF50', 
+    icon: '💰', 
+    isParent: true,
+    children: ['income_salary', 'income_interest', 'income_bonus', 'income_investment', 'income_etc']
+  },
+  
+  // 수입 - 2차 카테고리
+  { id: 'income_salary', name: '월급', type: 'income', color: '#66BB6A', icon: '💵', parentId: 'income' },
+  { id: 'income_interest', name: '이자', type: 'income', color: '#81C784', icon: '🏦', parentId: 'income' },
+  { id: 'income_bonus', name: '상여', type: 'income', color: '#A5D6A7', icon: '🎁', parentId: 'income' },
+  { id: 'income_investment', name: '투자', type: 'income', color: '#C8E6C9', icon: '📈', parentId: 'income' },
+  { id: 'income_etc', name: '기타소득', type: 'income', color: '#4CAF50', icon: '💸', parentId: 'income' },
+
+  // ========================================
+  // 지출 - 1차 카테고리
+  // ========================================
+  { id: 'special', name: '특별지출', type: 'expense', color: '#E91E63', icon: '🎁', isParent: true, children: [] },
+  { id: 'food', name: '식비', type: 'expense', color: '#FF6B6B', icon: '🍽️', isParent: true, children: [] },
+  { id: 'living', name: '생활비', type: 'expense', color: '#9B59B6', icon: '🏠', isParent: true, children: [] },
+  { id: 'culture', name: '문화생활', type: 'expense', color: '#E74C3C', icon: '🎬', isParent: true, children: [] },
+  { id: 'variable', name: '변동지출', type: 'expense', color: '#FFD93D', icon: '💳', isParent: true, children: [] },
+  { id: 'date', name: '데이트', type: 'expense', color: '#FFC0CB', icon: '💕', isParent: true, children: [] },
+  { id: 'fixed', name: '고정지출', type: 'expense', color: '#607D8B', icon: '📌', isParent: true, children: [] },
 ];
 
 const WALLET_STORAGE_KEY = '@dietmate_wallet';
@@ -279,6 +299,82 @@ const useWalletStore = create((set, get) => ({
   getCategoriesByType: (type) => {
     const { categories } = get();
     return categories.filter(cat => cat.type === type);
+  },
+
+  // 1차 카테고리만 가져오기 (부모)
+  getParentCategories: (type = null) => {
+    const { categories } = get();
+    const parents = categories.filter(cat => cat.isParent === true);
+    return type ? parents.filter(cat => cat.type === type) : parents;
+  },
+
+  // 2차 카테고리 가져오기 (자식)
+  getChildCategories: (parentId) => {
+    const { categories } = get();
+    return categories.filter(cat => cat.parentId === parentId);
+  },
+
+  // 카테고리와 부모 정보 함께 가져오기
+  getCategoryWithParent: (categoryId) => {
+    const { categories } = get();
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return null;
+
+    if (category.parentId) {
+      const parent = categories.find(cat => cat.id === category.parentId);
+      return { category, parent };
+    }
+
+    return { category, parent: null };
+  },
+
+  // 통계 계산 (1차 카테고리로 그룹핑)
+  getGroupedStatistics: (yearMonth) => {
+    const transactions = get().getMonthTransactions(yearMonth);
+    const { categories } = get();
+
+    // 지출만 필터링
+    const expenses = transactions.filter(t => t.type === 'expense');
+    const totalExpense = expenses.reduce((sum, t) => sum + t.amount, 0);
+
+    // 1차 카테고리별로 그룹핑
+    const primaryGroups = {};
+
+    expenses.forEach(txn => {
+      const catInfo = get().getCategoryWithParent(txn.category);
+      if (!catInfo) return;
+
+      // 1차 카테고리 ID 찾기
+      const primaryId = catInfo.parent ? catInfo.parent.id : catInfo.category.id;
+      const primaryCat = categories.find(c => c.id === primaryId);
+
+      if (!primaryGroups[primaryId]) {
+        primaryGroups[primaryId] = {
+          id: primaryId,
+          name: primaryCat?.name || '기타',
+          color: primaryCat?.color || '#95A5A6',
+          icon: primaryCat?.icon || '💸',
+          amount: 0,
+          count: 0,
+        };
+      }
+
+      primaryGroups[primaryId].amount += txn.amount;
+      primaryGroups[primaryId].count += 1;
+    });
+
+    // 배열로 변환 및 정렬
+    const groupedData = Object.values(primaryGroups)
+      .map(group => ({
+        ...group,
+        ratio: totalExpense > 0 ? group.amount / totalExpense : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    return {
+      totalExpense,
+      groups: groupedData,
+    };
   },
 }));
 

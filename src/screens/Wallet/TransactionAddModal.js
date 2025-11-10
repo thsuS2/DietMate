@@ -7,24 +7,35 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 const TransactionAddModal = ({ visible, onClose }) => {
-  const { addTransaction, categories, getCategoriesByType } = useWalletStore();
+  const { 
+    addTransaction, 
+    categories, 
+    getParentCategories,
+    getChildCategories,
+    getCategoryWithParent,
+  } = useWalletStore();
 
   // 상태
   const [type, setType] = useState('expense'); // 'income' | 'expense'
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState(null);
+  const [primaryCategory, setPrimaryCategory] = useState(null); // 1차 카테고리
+  const [secondaryCategory, setSecondaryCategory] = useState(null); // 2차 카테고리
   const [memo, setMemo] = useState('');
   const [date, setDate] = useState(getTodayString());
   const [time, setTime] = useState(formatTime(new Date()));
 
-  // 카테고리 필터링
-  const availableCategories = getCategoriesByType(type);
+  // 1차 카테고리 목록
+  const primaryCategories = getParentCategories(type);
+  
+  // 2차 카테고리 목록 (1차 선택 시)
+  const secondaryCategories = primaryCategory ? getChildCategories(primaryCategory) : [];
 
   // 초기화
   const resetForm = () => {
     setType('expense');
     setAmount('');
-    setCategory(null);
+    setPrimaryCategory(null);
+    setSecondaryCategory(null);
     setMemo('');
     setDate(getTodayString());
     setTime(formatTime(new Date()));
@@ -37,15 +48,18 @@ const TransactionAddModal = ({ visible, onClose }) => {
       return;
     }
 
-    if (!category) {
+    if (!primaryCategory) {
       alert('카테고리를 선택해주세요');
       return;
     }
 
+    // 2차 카테고리가 있으면 2차를, 없으면 1차를 저장
+    const finalCategory = secondaryCategory || primaryCategory;
+
     const transaction = {
       type,
       amount: parseFloat(amount.replace(/,/g, '')),
-      category,
+      category: finalCategory,
       memo,
       date,
       time,
@@ -70,7 +84,14 @@ const TransactionAddModal = ({ visible, onClose }) => {
   // 타입 변경
   const handleTypeChange = (newType) => {
     setType(newType);
-    setCategory(null); // 카테고리 초기화
+    setPrimaryCategory(null);
+    setSecondaryCategory(null);
+  };
+
+  // 1차 카테고리 선택
+  const handlePrimaryCategorySelect = (catId) => {
+    setPrimaryCategory(catId);
+    setSecondaryCategory(null); // 2차 초기화
   };
 
   return (
@@ -141,28 +162,28 @@ const TransactionAddModal = ({ visible, onClose }) => {
           </View>
         </View>
 
-        {/* 카테고리 선택 */}
+        {/* 1차 카테고리 선택 */}
         <View style={styles.section}>
           <AppText variant="h4" style={styles.sectionTitle}>
-            카테고리
+            카테고리 (1차)
           </AppText>
           <View style={styles.categoryGrid}>
-            {availableCategories.map((cat) => (
+            {primaryCategories.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 style={[
                   styles.categoryButton,
                   {
-                    backgroundColor: category === cat.id ? cat.color : colors.surface,
+                    backgroundColor: primaryCategory === cat.id ? cat.color : colors.surface,
                     borderColor: cat.color,
                   },
                 ]}
-                onPress={() => setCategory(cat.id)}
+                onPress={() => handlePrimaryCategorySelect(cat.id)}
               >
                 <AppText variant="h2">{cat.icon}</AppText>
                 <AppText
                   variant="caption"
-                  color={category === cat.id ? 'white' : 'text'}
+                  color={primaryCategory === cat.id ? 'white' : 'text'}
                   align="center"
                 >
                   {cat.name}
@@ -171,6 +192,39 @@ const TransactionAddModal = ({ visible, onClose }) => {
             ))}
           </View>
         </View>
+
+        {/* 2차 카테고리 선택 (선택사항) */}
+        {primaryCategory && secondaryCategories.length > 0 && (
+          <View style={styles.section}>
+            <AppText variant="h4" style={styles.sectionTitle}>
+              상세 분류 (선택사항)
+            </AppText>
+            <View style={styles.categoryGrid}>
+              {secondaryCategories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryButton,
+                    {
+                      backgroundColor: secondaryCategory === cat.id ? cat.color : colors.surface,
+                      borderColor: cat.color,
+                    },
+                  ]}
+                  onPress={() => setSecondaryCategory(cat.id)}
+                >
+                  <AppText variant="h2">{cat.icon}</AppText>
+                  <AppText
+                    variant="caption"
+                    color={secondaryCategory === cat.id ? 'white' : 'text'}
+                    align="center"
+                  >
+                    {cat.name}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* 메모 */}
         <View style={styles.section}>
