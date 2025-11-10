@@ -155,6 +155,31 @@ export const getDday = (targetDate) => {
 };
 
 /**
+ * 경과일 계산 (시작일부터 오늘까지)
+ */
+export const getDaysElapsed = (startDate) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const diffTime = today - start;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+/**
+ * 시간대별 인사말 반환
+ */
+export const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 6) return '좋은 밤이에요!';
+  if (hour < 12) return '좋은 아침이에요!';
+  if (hour < 18) return '좋은 오후예요!';
+  if (hour < 22) return '좋은 저녁이에요!';
+  return '좋은 밤이에요!';
+};
+
+/**
  * 간헐적 단식 종료 시간 계산
  */
 export const getFastingEndTime = (startTime, duration) => {
@@ -198,6 +223,8 @@ export default {
   getWeekDays,
   getDaysBetween,
   getDday,
+  getDaysElapsed,
+  getGreeting,
   getFastingEndTime,
   isFasting,
 };
