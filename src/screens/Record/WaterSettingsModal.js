@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal } from 'react-native';
-import { Portal, Dialog, Button, TextInput, Text } from 'react-native-paper';
+import { View, StyleSheet } from 'react-native';
+import { AppModal, AppInput, AppButton, AppText } from '../../components/common';
+import { spacing } from '../../theme/spacing';
 
 const WaterSettingsModal = ({ visible, onDismiss, onSave, initialShortcuts, initialGoal }) => {
   const [shortcut1Label, setShortcut1Label] = useState(initialShortcuts[0]?.label || '컵');
@@ -31,108 +32,122 @@ const WaterSettingsModal = ({ visible, onDismiss, onSave, initialShortcuts, init
   };
 
   return (
-    <Portal>
-      <Dialog visible={visible} onDismiss={handleCancel} style={styles.dialog}>
-        <Dialog.Title>⚙️ 수분 섭취 설정</Dialog.Title>
-        <Dialog.Content>
-          <View style={styles.content}>
-            <Text style={styles.sectionTitle}>숏컷 버튼 설정</Text>
-            
-            {/* 숏컷 1 */}
-            <View style={styles.shortcutSection}>
-              <Text style={styles.shortcutLabel}>숏컷 1</Text>
-              <TextInput
-                label="라벨"
-                value={shortcut1Label}
-                onChangeText={setShortcut1Label}
-                mode="outlined"
-                style={styles.input}
-                maxLength={10}
-              />
-              <TextInput
-                label="양 (ml)"
-                value={shortcut1Amount}
-                onChangeText={setShortcut1Amount}
-                mode="outlined"
-                keyboardType="numeric"
-                style={styles.input}
-              />
-            </View>
+    <AppModal
+      visible={visible}
+      onClose={handleCancel}
+      title="⚙️ 수분 섭취 설정"
+      size="medium"
+    >
+      <View style={styles.content}>
+        <AppText variant="h4" style={styles.sectionTitle}>
+          숏컷 버튼 설정
+        </AppText>
+        
+        {/* 숏컷 1 */}
+        <View style={styles.shortcutSection}>
+          <AppText variant="body2" color="textSecondary" style={styles.shortcutLabel}>
+            숏컷 1
+          </AppText>
+          <AppInput
+            label="라벨"
+            value={shortcut1Label}
+            onChangeText={setShortcut1Label}
+            placeholder="예: 컵"
+            maxLength={10}
+          />
+          <AppInput
+            label="양 (ml)"
+            value={shortcut1Amount}
+            onChangeText={setShortcut1Amount}
+            type="number"
+            placeholder="예: 200"
+          />
+        </View>
 
-            {/* 숏컷 2 */}
-            <View style={styles.shortcutSection}>
-              <Text style={styles.shortcutLabel}>숏컷 2</Text>
-              <TextInput
-                label="라벨"
-                value={shortcut2Label}
-                onChangeText={setShortcut2Label}
-                mode="outlined"
-                style={styles.input}
-                maxLength={10}
-              />
-              <TextInput
-                label="양 (ml)"
-                value={shortcut2Amount}
-                onChangeText={setShortcut2Amount}
-                mode="outlined"
-                keyboardType="numeric"
-                style={styles.input}
-              />
-            </View>
+        {/* 숏컷 2 */}
+        <View style={styles.shortcutSection}>
+          <AppText variant="body2" color="textSecondary" style={styles.shortcutLabel}>
+            숏컷 2
+          </AppText>
+          <AppInput
+            label="라벨"
+            value={shortcut2Label}
+            onChangeText={setShortcut2Label}
+            placeholder="예: 텀블러"
+            maxLength={10}
+          />
+          <AppInput
+            label="양 (ml)"
+            value={shortcut2Amount}
+            onChangeText={setShortcut2Amount}
+            type="number"
+            placeholder="예: 500"
+          />
+        </View>
 
-            {/* 일일 목표 */}
-            <View style={styles.goalSection}>
-              <Text style={styles.sectionTitle}>일일 목표량</Text>
-              <TextInput
-                label="목표 (ml)"
-                value={dailyGoal}
-                onChangeText={setDailyGoal}
-                mode="outlined"
-                keyboardType="numeric"
-                style={styles.input}
-              />
-            </View>
-          </View>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={handleCancel}>취소</Button>
-          <Button onPress={handleSave} mode="contained">저장</Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+        {/* 일일 목표 */}
+        <View style={styles.goalSection}>
+          <AppText variant="h4" style={styles.sectionTitle}>
+            일일 목표량
+          </AppText>
+          <AppInput
+            label="목표 (ml)"
+            value={dailyGoal}
+            onChangeText={setDailyGoal}
+            type="number"
+            placeholder="예: 2000"
+          />
+        </View>
+
+        {/* 버튼들 */}
+        <View style={styles.actions}>
+          <AppButton
+            variant="outlined"
+            colorTheme="black"
+            onPress={handleCancel}
+            style={styles.actionButton}
+          >
+            취소
+          </AppButton>
+          <AppButton
+            variant="contained"
+            colorTheme="water"
+            onPress={handleSave}
+            style={styles.actionButton}
+          >
+            저장
+          </AppButton>
+        </View>
+      </View>
+    </AppModal>
   );
 };
 
 const styles = StyleSheet.create({
-  dialog: {
-    maxHeight: '80%',
-  },
   content: {
-    paddingVertical: 10,
+    paddingBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 10,
-    color: '#333',
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
   },
   shortcutSection: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   shortcutLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#666',
+    marginBottom: spacing.sm,
   },
   goalSection: {
-    marginTop: 10,
+    marginTop: spacing.sm,
   },
-  input: {
-    marginBottom: 10,
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  actionButton: {
+    flex: 1,
   },
 });
 
 export default WaterSettingsModal;
-

@@ -13,6 +13,7 @@ import { initNotifications } from './src/utils/notify';
 import useRecordStore from './src/store/useRecordStore';
 import useSettingsStore from './src/store/useSettingsStore';
 import useWalletStore from './src/store/useWalletStore';
+import { paperTheme } from './src/theme/theme';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -38,7 +39,7 @@ function App() {
   }, [loadRecords, loadSettings, loadWallet]);
 
   return (
-    <PaperProvider>
+    <PaperProvider theme={paperTheme}>
       <SafeAreaProvider>
         <View style={{ flex: 1 }}>
           <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
