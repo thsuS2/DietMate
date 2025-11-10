@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import WaterRecordScreen from './WaterRecordScreen';
+import FastingScreen from '../Fasting/FastingScreen';
 
 // 임시 화면들 (추후 구현)
 const MealRecordScreen = () => (
@@ -74,6 +75,11 @@ const RecordScreen = () => {
         name="Memo" 
         component={MemoRecordScreen}
         options={{ title: '📝 메모' }}
+      />
+      <Tab.Screen 
+        name="Fasting" 
+        component={FastingScreen}
+        options={{ title: '⏰ 단식' }}
       />
     </Tab.Navigator>
   );

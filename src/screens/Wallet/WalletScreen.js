@@ -4,36 +4,36 @@ import { AppCard, AppText } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-const FastingScreen = () => {
+const WalletScreen = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <AppText variant="h2" style={styles.title}>⏰ 간헐적 단식</AppText>
+        <AppText variant="h2" style={styles.title}>💰 가계부</AppText>
         <AppText variant="body1" color="textSecondary" style={styles.description}>
-          단식 시간을 설정하고 관리하세요.
+          배고픔으로 인한 감정적 소비를 방지하세요.
         </AppText>
 
         <AppCard variant="elevated" elevation="sm" style={styles.card}>
           <AppText variant="h4" style={styles.cardTitle}>
-            ⏱️ 단식 타이머
+            📝 소비 기록
           </AppText>
           <AppText variant="body2" color="textSecondary">
-            단식 시작/종료 시간을 설정하고 진행 상황을 확인하세요.
+            날짜, 금액, 이유를 기록하여 소비 패턴을 파악하세요.
           </AppText>
         </AppCard>
 
         <AppCard variant="elevated" elevation="sm" style={styles.card}>
           <AppText variant="h4" style={styles.cardTitle}>
-            🔔 알림 설정
+            📊 주간 통계
           </AppText>
           <AppText variant="body2" color="textSecondary">
-            단식 시작 10분 전, 단식 종료 시 알림을 받으세요.
+            감정적 소비를 카테고리별로 분석합니다.
           </AppText>
         </AppCard>
 
         <AppCard variant="filled" style={styles.infoCard}>
           <AppText variant="body2" color="textSecondary" align="center">
-            곧 간헐적 단식 기능이 추가됩니다! 🚀
+            곧 가계부 기능이 추가됩니다! 🚀
           </AppText>
         </AppCard>
       </View>
@@ -62,12 +62,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   infoCard: {
-    backgroundColor: colors.fastingLight,
+    backgroundColor: colors.walletLight,
     borderWidth: 1,
-    borderColor: colors.fasting,
+    borderColor: colors.wallet,
     paddingVertical: spacing.lg,
     marginTop: spacing.lg,
   },
 });
 
-export default FastingScreen;
+export default WalletScreen;
+

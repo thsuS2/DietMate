@@ -2,12 +2,13 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors } from '../theme/colors';
 
-// Screens (추후 구현)
+// Screens
 import HomeScreen from '../screens/Home/HomeScreen';
 import RecordScreen from '../screens/Record/RecordScreen';
 import StatsScreen from '../screens/Stats/StatsScreen';
-import FastingScreen from '../screens/Fasting/FastingScreen';
+import WalletScreen from '../screens/Wallet/WalletScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -30,8 +31,8 @@ const AppNavigator = () => {
               case 'Stats':
                 iconName = focused ? 'chart-line' : 'chart-line-variant';
                 break;
-              case 'Fasting':
-                iconName = focused ? 'clock' : 'clock-outline';
+              case 'Wallet':
+                iconName = focused ? 'wallet' : 'wallet-outline';
                 break;
               case 'Settings':
                 iconName = focused ? 'cog' : 'cog-outline';
@@ -42,8 +43,8 @@ const AppNavigator = () => {
 
             return <Icon name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: '#6200EE',
-          tabBarInactiveTintColor: 'gray',
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textSecondary,
           headerShown: true,
         })}
       >
@@ -63,9 +64,9 @@ const AppNavigator = () => {
           options={{ title: '통계' }}
         />
         <Tab.Screen 
-          name="Fasting" 
-          component={FastingScreen} 
-          options={{ title: '단식' }}
+          name="Wallet" 
+          component={WalletScreen} 
+          options={{ title: '가계부' }}
         />
         <Tab.Screen 
           name="Settings" 
