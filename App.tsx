@@ -5,9 +5,8 @@
  */
 
 import React, { useEffect } from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import { StatusBar, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initNotifications } from './src/utils/notify';
 import useRecordStore from './src/store/useRecordStore';
@@ -38,12 +37,12 @@ function App() {
   }, [loadRecords, loadSettings, loadWallet]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <AppNavigator />
       </SafeAreaProvider>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
