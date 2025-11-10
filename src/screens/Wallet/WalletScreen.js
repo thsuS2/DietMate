@@ -1,43 +1,300 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { AppCard, AppText } from '../../components/common';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import useWalletStore from '../../store/useWalletStore';
+import { getTodayString, formatDateShort, getThisWeek } from '../../utils/date';
+import { AppCard, AppText, AppButton, AppProgressBar } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { PieChart } from 'react-native-chart-kit';
+import TransactionAddModal from './TransactionAddModal';
 
 const WalletScreen = () => {
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [periodType, setPeriodType] = useState('month'); // 'day' | 'week' | 'month'
+  const [selectedMonth, setSelectedMonth] = useState(getTodayString().substring(0, 7)); // '2025-11'
+
+  const { 
+    transactions, 
+    budget, 
+    categories,
+    getMonthTransactions, 
+    getTransactionsByPeriod,
+    getStatistics,
+    getCategoryById,
+    loadWallet,
+  } = useWalletStore();
+
+  // 초기 로드
+  useEffect(() => {
+    loadWallet();
+  }, []);
+
+  // 통계 데이터
+  const stats = getStatistics(selectedMonth);
+  const monthTransactions = getMonthTransactions(selectedMonth);
+
+  // 오늘 거래
+  const today = getTodayString();
+  const todayTransactions = monthTransactions.filter(t => t.date === today);
+  const todayExpense = todayTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // 이번 주 거래
+  const thisWeek = getThisWeek();
+  const weekTransactions = getTransactionsByPeriod(thisWeek.start, thisWeek.end);
+  const weekExpense = weekTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // 도넛 차트 데이터
+  const pieChartData = stats.categoryRatios
+    .filter(cat => cat.amount > 0)
+    .slice(0, 5) // 상위 5개만
+    .map(cat => ({
+      name: cat.categoryName,
+      amount: cat.amount,
+      color: cat.color,
+      legendFontColor: colors.text,
+      legendFontSize: 12,
+    }));
+
+  // 날짜별 그룹핑
+  const groupedTransactions = monthTransactions.reduce((acc, txn) => {
+    if (!acc[txn.date]) {
+      acc[txn.date] = [];
+    }
+    acc[txn.date].push(txn);
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(groupedTransactions).sort().reverse();
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <AppText variant="h2" style={styles.title}>💰 가계부</AppText>
-        <AppText variant="body1" color="textSecondary" style={styles.description}>
-          배고픔으로 인한 감정적 소비를 방지하세요.
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        {/* 예산 카드 */}
+        <AppCard variant="elevated" elevation="md" style={styles.budgetCard}>
+          <View style={styles.budgetHeader}>
+            <AppText variant="h3">💰 이번 달 예산</AppText>
+            <AppText variant="h2" color="wallet">
+              {stats.totalExpense.toLocaleString()}원
+            </AppText>
+          </View>
+          <AppText variant="body2" color="textSecondary" align="right">
+            예산: {budget.monthly.toLocaleString()}원
+          </AppText>
+          <AppProgressBar
+            progress={stats.budgetUsage}
+            colorTheme="wallet"
+            height={12}
+            showPercentage={true}
+            style={styles.budgetProgress}
+          />
+        </AppCard>
+
+        {/* 기간별 요약 */}
+        <View style={styles.periodSelector}>
+          <TouchableOpacity
+            style={[
+              styles.periodButton,
+              periodType === 'day' && styles.periodButtonActive,
+            ]}
+            onPress={() => setPeriodType('day')}
+          >
+            <AppText
+              variant="body2"
+              color={periodType === 'day' ? 'primary' : 'textSecondary'}
+              bold={periodType === 'day'}
+            >
+              오늘
+            </AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.periodButton,
+              periodType === 'week' && styles.periodButtonActive,
+            ]}
+            onPress={() => setPeriodType('week')}
+          >
+            <AppText
+              variant="body2"
+              color={periodType === 'week' ? 'primary' : 'textSecondary'}
+              bold={periodType === 'week'}
+            >
+              이번 주
+            </AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.periodButton,
+              periodType === 'month' && styles.periodButtonActive,
+            ]}
+            onPress={() => setPeriodType('month')}
+          >
+            <AppText
+              variant="body2"
+              color={periodType === 'month' ? 'primary' : 'textSecondary'}
+              bold={periodType === 'month'}
+            >
+              이번 달
+            </AppText>
+          </TouchableOpacity>
+        </View>
+
+        <AppCard variant="elevated" elevation="sm" style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <AppText variant="caption" color="textSecondary">
+                지출
+              </AppText>
+              <AppText variant="h3" color="wallet">
+                -{periodType === 'day' 
+                  ? todayExpense.toLocaleString()
+                  : periodType === 'week'
+                  ? weekExpense.toLocaleString()
+                  : stats.totalExpense.toLocaleString()}원
+              </AppText>
+            </View>
+          </View>
+        </AppCard>
+
+        {/* 카테고리별 지출 (도넛 차트) */}
+        {pieChartData.length > 0 && (
+          <AppCard variant="elevated" elevation="sm" style={styles.chartCard}>
+            <AppText variant="h3" style={styles.sectionTitle}>
+              📊 카테고리별 지출
+            </AppText>
+            <PieChart
+              data={pieChartData}
+              width={Dimensions.get('window').width - 64}
+              height={220}
+              chartConfig={{
+                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+              }}
+              accessor="amount"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute
+            />
+            
+            {/* 카테고리 목록 */}
+            <View style={styles.categoryList}>
+              {stats.categoryRatios.slice(0, 5).map((cat) => (
+                <View key={cat.categoryId} style={styles.categoryItem}>
+                  <View style={styles.categoryInfo}>
+                    <View
+                      style={[styles.categoryDot, { backgroundColor: cat.color }]}
+                    />
+                    <AppText variant="body2">
+                      {cat.icon} {cat.categoryName}
+                    </AppText>
+                  </View>
+                  <View style={styles.categoryAmount}>
+                    <AppText variant="body2" bold>
+                      {cat.amount.toLocaleString()}원
+                    </AppText>
+                    <AppText variant="caption" color="textSecondary">
+                      {Math.round(cat.ratio * 100)}%
+                    </AppText>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </AppCard>
+        )}
+
+        {/* 거래 내역 */}
+        <AppCard variant="elevated" elevation="sm" style={styles.transactionCard}>
+          <View style={styles.transactionHeader}>
+            <AppText variant="h3">📝 거래 내역</AppText>
+            <AppText variant="body2" color="primary">
+              {selectedMonth}
+            </AppText>
+          </View>
+
+          {sortedDates.length > 0 ? (
+            sortedDates.map((date) => (
+              <View key={date} style={styles.dateGroup}>
+                <View style={styles.dateHeader}>
+                  <AppText variant="body2" color="textSecondary">
+                    {formatDateShort(date)}
+                  </AppText>
+                  <AppText variant="body2" color="wallet">
+                    -{groupedTransactions[date]
+                      .filter(t => t.type === 'expense')
+                      .reduce((sum, t) => sum + t.amount, 0)
+                      .toLocaleString()}원
+                  </AppText>
+                </View>
+
+                {groupedTransactions[date].map((txn) => {
+                  const cat = getCategoryById(txn.category);
+                  return (
+                    <TouchableOpacity
+                      key={txn.id}
+                      style={styles.transactionItem}
+                    >
+                      <View style={styles.transactionLeft}>
+                        <View
+                          style={[
+                            styles.categoryIcon,
+                            { backgroundColor: cat?.color || colors.walletEtc },
+                          ]}
+                        >
+                          <AppText variant="body1">{cat?.icon || '💸'}</AppText>
+                        </View>
+                        <View>
+                          <AppText variant="body2">{cat?.name || '기타'}</AppText>
+                          {txn.memo && (
+                            <AppText variant="caption" color="textSecondary">
+                              {txn.memo}
+                            </AppText>
+                          )}
+                        </View>
+                      </View>
+                      <AppText
+                        variant="body1"
+                        color={txn.type === 'income' ? 'walletIncome' : 'wallet'}
+                        bold
+                      >
+                        {txn.type === 'income' ? '+' : '-'}
+                        {txn.amount.toLocaleString()}원
+                      </AppText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <AppText variant="body1" color="textSecondary" align="center">
+                아직 거래 내역이 없습니다
+              </AppText>
+              <AppText variant="caption" color="textSecondary" align="center" style={styles.emptyHint}>
+                + 버튼을 눌러 수입/지출을 추가해보세요
+              </AppText>
+            </View>
+          )}
+        </AppCard>
+      </ScrollView>
+
+      {/* 플로팅 액션 버튼 */}
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => setAddModalVisible(true)}
+      >
+        <AppText variant="h1" color="white">
+          +
         </AppText>
+      </TouchableOpacity>
 
-        <AppCard variant="elevated" elevation="sm" style={styles.card}>
-          <AppText variant="h4" style={styles.cardTitle}>
-            📝 소비 기록
-          </AppText>
-          <AppText variant="body2" color="textSecondary">
-            날짜, 금액, 이유를 기록하여 소비 패턴을 파악하세요.
-          </AppText>
-        </AppCard>
-
-        <AppCard variant="elevated" elevation="sm" style={styles.card}>
-          <AppText variant="h4" style={styles.cardTitle}>
-            📊 주간 통계
-          </AppText>
-          <AppText variant="body2" color="textSecondary">
-            감정적 소비를 카테고리별로 분석합니다.
-          </AppText>
-        </AppCard>
-
-        <AppCard variant="filled" style={styles.infoCard}>
-          <AppText variant="body2" color="textSecondary" align="center">
-            곧 가계부 기능이 추가됩니다! 🚀
-          </AppText>
-        </AppCard>
-      </View>
-    </ScrollView>
+      {/* 추가 모달 */}
+      <TransactionAddModal
+        visible={addModalVisible}
+        onClose={() => setAddModalVisible(false)}
+      />
+    </View>
   );
 };
 
@@ -46,29 +303,149 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
+  scrollView: {
+    flex: 1,
     padding: spacing.md,
   },
-  title: {
-    marginBottom: spacing.sm,
+  budgetCard: {
+    marginBottom: spacing.md,
+    backgroundColor: colors.walletLight,
   },
-  description: {
-    marginBottom: spacing.lg,
+  budgetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
   },
-  card: {
+  budgetProgress: {
+    marginTop: spacing.sm,
+  },
+  periodSelector: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  cardTitle: {
-    marginBottom: spacing.sm,
-  },
-  infoCard: {
-    backgroundColor: colors.walletLight,
+  periodButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: spacing.borderRadius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.wallet,
-    paddingVertical: spacing.lg,
-    marginTop: spacing.lg,
+    borderColor: colors.border,
+  },
+  periodButtonActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  summaryCard: {
+    marginBottom: spacing.md,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  summaryItem: {
+    alignItems: 'center',
+  },
+  chartCard: {
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    marginBottom: spacing.md,
+  },
+  categoryList: {
+    marginTop: spacing.md,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  categoryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  categoryDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  categoryAmount: {
+    alignItems: 'flex-end',
+  },
+  transactionCard: {
+    marginBottom: 80, // 플로팅 버튼 공간
+  },
+  transactionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  dateGroup: {
+    marginBottom: spacing.md,
+  },
+  dateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: spacing.borderRadius.sm,
+    marginBottom: spacing.xs,
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  transactionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  categoryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: spacing.borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyState: {
+    paddingVertical: spacing.xxl,
+    alignItems: 'center',
+  },
+  emptyHint: {
+    marginTop: spacing.xs,
+  },
+  floatingButton: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });
 
 export default WalletScreen;
-

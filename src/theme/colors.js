@@ -58,6 +58,19 @@ export const colors = {
   info: '#2196F3',              // 정보
 
   // ========================================
+  // Wallet Categories (가계부 카테고리)
+  // ========================================
+  walletIncome: '#4CAF50',      // 수입 (초록)
+  walletFood: '#FF6B6B',        // 식비 (빨강)
+  walletDelivery: '#FF8787',    // 배달음식 (연빨강)
+  walletCafe: '#FFD93D',        // 카페 (노랑)
+  walletTransport: '#9B59B6',   // 교통 (보라)
+  walletShopping: '#4ECDC4',    // 쇼핑 (청록)
+  walletHealth: '#3498DB',      // 의료 (파랑)
+  walletCulture: '#E74C3C',     // 문화 (빨강)
+  walletEtc: '#95A5A6',         // 기타 (회색)
+
+  // ========================================
   // Neutral (중립 - 최소화)
   // ========================================
   background: '#FFFFFF',        // 메인 배경
