@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getTodayString, formatDateWithDay, getDaysElapsed, getDday, getGreeting, isFasting } from '../../utils/date';
+import { getTodayString, formatDateWithDay, getDaysElapsed, getDday, getGreeting, isFasting, getFastingEndTime } from '../../utils/date';
 import useRecordStore from '../../store/useRecordStore';
 import useSettingsStore from '../../store/useSettingsStore';
 import { AppCard, AppText, AppButton, AppProgressBar } from '../../components/common';
@@ -33,20 +33,55 @@ const HomeScreen = () => {
     : 0;
   const progressRate = totalDays > 0 ? daysElapsed / totalDays : 0;
 
-  // 단식 상태
+  // 단식 상태 및 진행률
   const fastingStatus = isFasting(settings.fastingStart, settings.fastingDuration);
+  const calculateFastingProgress = () => {
+    if (!fastingStatus) return { hours: 0, progress: 0 };
+    
+    const now = new Date();
+    const [startHours, startMinutes] = settings.fastingStart.split(':').map(Number);
+    
+    // 오늘의 시작 시간
+    let fastingStartTime = new Date();
+    fastingStartTime.setHours(startHours, startMinutes, 0, 0);
+    
+    // 만약 시작 시간이 미래라면, 어제부터 시작한 것
+    if (fastingStartTime > now) {
+      fastingStartTime.setDate(fastingStartTime.getDate() - 1);
+    }
+    
+    const elapsedMs = now - fastingStartTime;
+    const elapsedHours = elapsedMs / (1000 * 60 * 60);
+    const progress = Math.min(elapsedHours / settings.fastingDuration, 1);
+    
+    return {
+      hours: Math.floor(elapsedHours),
+      progress,
+    };
+  };
+  
+  const fastingProgress = calculateFastingProgress();
 
-  // 식단 기록 상태
+  // 식단 기록 상태 및 사진
   const mealStatus = {
     breakfast: todayRecord.meals?.some(m => m.type === '아침') || false,
     lunch: todayRecord.meals?.some(m => m.type === '점심') || false,
     dinner: todayRecord.meals?.some(m => m.type === '저녁') || false,
     snack: todayRecord.meals?.some(m => m.type === '간식') || false,
   };
+  
+  const mealPhotos = todayRecord.meals?.filter(m => m.photo).map(m => m.photo) || [];
 
-  // 운동 통계
+  // 운동 통계 및 진행률
   const exerciseTime = todayRecord.exercises?.reduce((sum, ex) => sum + (ex.duration || 0), 0) || 0;
   const exerciseCount = todayRecord.exercises?.length || 0;
+  const dailyExerciseGoal = 30; // 일일 운동 목표 (분)
+  const exerciseProgress = Math.min(exerciseTime / dailyExerciseGoal, 1);
+  
+  // 체중 및 목표까지 남은 kg
+  const weightRemaining = settings.targetWeight && todayRecord.weight 
+    ? todayRecord.weight - settings.targetWeight 
+    : null;
 
   // 연속 기록 일수 계산 (간단 버전)
   const calculateStreak = () => {
@@ -72,12 +107,6 @@ const HomeScreen = () => {
   };
 
   const streak = calculateStreak();
-
-  // 빠른 물 마시기
-  const handleQuickWater = async () => {
-    await addWater(today, 250, '빠른 추가');
-    Alert.alert('💧', '물 250ml를 추가했어요!');
-  };
 
   // 동기부여 메시지
   const getMotivationalMessage = () => {
@@ -156,6 +185,21 @@ const HomeScreen = () => {
             📊 오늘의 진행 상황
           </AppText>
 
+          {/* 체중 */}
+          <View style={styles.progressItem}>
+            <View style={styles.progressRow}>
+              <AppText variant="body1">⚖️ 체중</AppText>
+              <AppText variant="body2" color="weight">
+                {todayRecord.weight ? `${todayRecord.weight.toFixed(1)}kg` : '미기록'}
+              </AppText>
+            </View>
+            {weightRemaining !== null && todayRecord.weight && (
+              <AppText variant="caption" color="textSecondary" style={styles.weightGoal}>
+                목표까지 {weightRemaining > 0 ? `${weightRemaining.toFixed(1)}kg 남음` : '목표 달성! 🎉'}
+              </AppText>
+            )}
+          </View>
+
           {/* 수분 섭취 */}
           <View style={styles.progressItem}>
             <View style={styles.progressHeader}>
@@ -192,83 +236,59 @@ const HomeScreen = () => {
                   {mealStatus.dinner ? '✅' : '⭕'} 저녁
                 </AppText>
               </View>
-              <View style={[styles.mealBadge, mealStatus.snack && styles.mealBadgeActive]}>
-                <AppText variant="caption" color={mealStatus.snack ? 'white' : 'textSecondary'}>
-                  {mealStatus.snack ? '✅' : '⭕'} 간식
-                </AppText>
-              </View>
             </View>
+            {mealPhotos.length > 0 && (
+              <View style={styles.mealPhotos}>
+                {mealPhotos.slice(0, 4).map((photo, index) => (
+                  <Image 
+                    key={index} 
+                    source={{ uri: photo }} 
+                    style={styles.mealPhoto}
+                  />
+                ))}
+                {mealPhotos.length > 4 && (
+                  <View style={[styles.mealPhoto, styles.mealPhotoMore]}>
+                    <AppText variant="caption" color="white">
+                      +{mealPhotos.length - 4}
+                    </AppText>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
           {/* 운동 */}
           <View style={styles.progressItem}>
-            <View style={styles.progressRow}>
+            <View style={styles.progressHeader}>
               <AppText variant="body1">🏃 운동</AppText>
               <AppText variant="body2" color="exercise">
                 {exerciseTime}분 ({exerciseCount}회)
               </AppText>
             </View>
-          </View>
-
-          {/* 체중 */}
-          <View style={styles.progressItem}>
-            <View style={styles.progressRow}>
-              <AppText variant="body1">⚖️ 체중</AppText>
-              <AppText variant="body2" color="weight">
-                {todayRecord.weight ? `${todayRecord.weight.toFixed(1)}kg` : '미기록'}
-              </AppText>
-            </View>
+            <AppProgressBar
+              progress={exerciseProgress}
+              colorTheme="exercise"
+              height={8}
+            />
           </View>
 
           {/* 단식 */}
           <View style={styles.progressItem}>
-            <View style={styles.progressRow}>
+            <View style={styles.progressHeader}>
               <AppText variant="body1">⏱️ 단식</AppText>
               <AppText variant="body2" color="fasting">
-                {fastingStatus ? '진행 중' : '완료/시작 전'}
+                {fastingStatus 
+                  ? `진행 중 (${fastingProgress.hours}h / ${settings.fastingDuration}h)` 
+                  : '완료/시작 전'}
               </AppText>
             </View>
-          </View>
-        </AppCard>
-
-        {/* Quick Actions */}
-        <AppCard variant="elevated" elevation="sm" style={styles.actionsCard}>
-          <AppText variant="h3" style={styles.sectionTitle}>
-            ⚡ 빠른 기록
-          </AppText>
-          <View style={styles.actionsGrid}>
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: colors.waterLight }]}
-              onPress={handleQuickWater}
-            >
-              <AppText variant="h2">💧</AppText>
-              <AppText variant="caption" align="center">물 마시기</AppText>
-              <AppText variant="caption" color="textSecondary" align="center">+250ml</AppText>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: colors.mealLight }]}
-              onPress={() => navigation.navigate('Record', { screen: 'Meal' })}
-            >
-              <AppText variant="h2">🍽️</AppText>
-              <AppText variant="caption" align="center">식단 기록</AppText>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: colors.exerciseLight }]}
-              onPress={() => navigation.navigate('Record', { screen: 'Exercise' })}
-            >
-              <AppText variant="h2">🏃</AppText>
-              <AppText variant="caption" align="center">운동 기록</AppText>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: colors.weightLight }]}
-              onPress={() => navigation.navigate('Record', { screen: 'Weight' })}
-            >
-              <AppText variant="h2">⚖️</AppText>
-              <AppText variant="caption" align="center">체중 기록</AppText>
-            </TouchableOpacity>
+            {fastingStatus && (
+              <AppProgressBar
+                progress={fastingProgress.progress}
+                colorTheme="fasting"
+                height={8}
+              />
+            )}
           </View>
         </AppCard>
 
@@ -378,6 +398,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  weightGoal: {
+    marginTop: spacing.xs,
+  },
   mealStatus: {
     flexDirection: 'row',
     gap: spacing.xs,
@@ -395,22 +418,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.meal,
     borderColor: colors.meal,
   },
-  actionsCard: {
-    marginBottom: spacing.md,
-  },
-  actionsGrid: {
+  mealPhotos: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
   },
-  actionButton: {
-    flex: 1,
-    minWidth: '47%',
-    aspectRatio: 1,
-    borderRadius: spacing.borderRadius.lg,
-    alignItems: 'center',
+  mealPhoto: {
+    width: 50,
+    height: 50,
+    borderRadius: spacing.borderRadius.md,
+    backgroundColor: colors.surface,
+  },
+  mealPhotoMore: {
+    backgroundColor: colors.textSecondary,
     justifyContent: 'center',
-    padding: spacing.md,
+    alignItems: 'center',
   },
   summaryCard: {
     marginBottom: spacing.md,
