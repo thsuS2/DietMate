@@ -7,6 +7,7 @@
 import React, { useEffect } from 'react';
 import { StatusBar, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PaperProvider } from 'react-native-paper';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initNotifications } from './src/utils/notify';
 import useRecordStore from './src/store/useRecordStore';
@@ -37,12 +38,14 @@ function App() {
   }, [loadRecords, loadSettings, loadWallet]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <PaperProvider>
       <SafeAreaProvider>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <AppNavigator />
+        <View style={{ flex: 1 }}>
+          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+          <AppNavigator />
+        </View>
       </SafeAreaProvider>
-    </View>
+    </PaperProvider>
   );
 }
 
