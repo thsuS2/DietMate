@@ -42,13 +42,31 @@ const useRecordStore = create((set, get) => ({
   // 운동 기록
   addExercise: async (date, exercise) => {
     const { records } = get();
-    const dateRecords = records[date] || { meals: [], exercise: null, weight: null, water: 0, memo: '' };
+    const dateRecords = records[date] || { 
+      meals: [], 
+      exercises: [],
+      weight: null, 
+      weightHistory: [],
+      water: 0, 
+      waterHistory: [],
+      memo: '' 
+    };
+    
+    const now = new Date();
+    const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
     const updatedRecords = {
       ...records,
       [date]: {
         ...dateRecords,
-        exercise,
+        exercises: [
+          ...(dateRecords.exercises || []),
+          {
+            ...exercise,
+            time: timeString,
+            timestamp: now.toISOString(),
+          },
+        ],
       },
     };
 
@@ -59,13 +77,32 @@ const useRecordStore = create((set, get) => ({
   // 몸무게 기록
   addWeight: async (date, weight) => {
     const { records } = get();
-    const dateRecords = records[date] || { meals: [], exercise: null, weight: null, water: 0, memo: '' };
+    const dateRecords = records[date] || { 
+      meals: [], 
+      exercise: null, 
+      weight: null, 
+      weightHistory: [],
+      water: 0, 
+      waterHistory: [],
+      memo: '' 
+    };
+    
+    const now = new Date();
+    const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
     const updatedRecords = {
       ...records,
       [date]: {
         ...dateRecords,
-        weight,
+        weight: parseFloat(weight),
+        weightHistory: [
+          ...(dateRecords.weightHistory || []),
+          {
+            time: timeString,
+            weight: parseFloat(weight),
+            timestamp: now.toISOString(),
+          },
+        ],
       },
     };
 
