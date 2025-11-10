@@ -1,37 +1,95 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import WaterRecordScreen from './WaterRecordScreen';
+
+// 임시 화면들 (추후 구현)
+const MealRecordScreen = () => (
+  <View style={styles.tempScreen}>
+    <Text style={styles.tempText}>🍽️ 식단 기록 (준비 중)</Text>
+  </View>
+);
+
+const ExerciseRecordScreen = () => (
+  <View style={styles.tempScreen}>
+    <Text style={styles.tempText}>🏃 운동 기록 (준비 중)</Text>
+  </View>
+);
+
+const WeightRecordScreen = () => (
+  <View style={styles.tempScreen}>
+    <Text style={styles.tempText}>⚖️ 몸무게 기록 (준비 중)</Text>
+  </View>
+);
+
+const MemoRecordScreen = () => (
+  <View style={styles.tempScreen}>
+    <Text style={styles.tempText}>📝 메모 (준비 중)</Text>
+  </View>
+);
+
+const Tab = createMaterialTopTabNavigator();
 
 const RecordScreen = () => {
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>📝 기록</Text>
-        <Text style={styles.description}>
-          식단, 운동, 몸무게, 수분, 메모를 기록하세요.
-        </Text>
-      </View>
-    </ScrollView>
+    <Tab.Navigator
+      screenOptions={{
+        tabBarScrollEnabled: true,
+        tabBarActiveTintColor: '#6200EE',
+        tabBarInactiveTintColor: '#666',
+        tabBarIndicatorStyle: {
+          backgroundColor: '#6200EE',
+          height: 3,
+        },
+        tabBarLabelStyle: {
+          fontSize: 14,
+          fontWeight: '600',
+        },
+        tabBarStyle: {
+          backgroundColor: '#fff',
+        },
+      }}
+    >
+      <Tab.Screen 
+        name="Water" 
+        component={WaterRecordScreen}
+        options={{ title: '💧 수분' }}
+      />
+      <Tab.Screen 
+        name="Meal" 
+        component={MealRecordScreen}
+        options={{ title: '🍽️ 식단' }}
+      />
+      <Tab.Screen 
+        name="Exercise" 
+        component={ExerciseRecordScreen}
+        options={{ title: '🏃 운동' }}
+      />
+      <Tab.Screen 
+        name="Weight" 
+        component={WeightRecordScreen}
+        options={{ title: '⚖️ 몸무게' }}
+      />
+      <Tab.Screen 
+        name="Memo" 
+        component={MemoRecordScreen}
+        options={{ title: '📝 메모' }}
+      />
+    </Tab.Navigator>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  tempScreen: {
     flex: 1,
-    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
   },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 16,
+  tempText: {
+    fontSize: 18,
     color: '#666',
   },
 });
 
 export default RecordScreen;
-

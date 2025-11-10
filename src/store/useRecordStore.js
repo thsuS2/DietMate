@@ -74,15 +74,34 @@ const useRecordStore = create((set, get) => ({
   },
 
   // 수분 추가 (1컵 = 200ml)
-  addWater: async (date, amount = 200) => {
+  addWater: async (date, amount = 200, label = '') => {
     const { records } = get();
-    const dateRecords = records[date] || { meals: [], exercise: null, weight: null, water: 0, memo: '' };
+    const dateRecords = records[date] || { 
+      meals: [], 
+      exercise: null, 
+      weight: null, 
+      water: 0, 
+      waterHistory: [],
+      memo: '' 
+    };
+    
+    const now = new Date();
+    const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
     const updatedRecords = {
       ...records,
       [date]: {
         ...dateRecords,
         water: (dateRecords.water || 0) + amount,
+        waterHistory: [
+          ...(dateRecords.waterHistory || []),
+          {
+            time: timeString,
+            amount,
+            label,
+            timestamp: now.toISOString(),
+          },
+        ],
       },
     };
 
@@ -110,7 +129,14 @@ const useRecordStore = create((set, get) => ({
   // 특정 날짜 기록 가져오기
   getRecordByDate: (date) => {
     const { records } = get();
-    return records[date] || { meals: [], exercise: null, weight: null, water: 0, memo: '' };
+    return records[date] || { 
+      meals: [], 
+      exercise: null, 
+      weight: null, 
+      water: 0, 
+      waterHistory: [],
+      memo: '' 
+    };
   },
 
   // 주간 기록 가져오기

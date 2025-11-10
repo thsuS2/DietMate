@@ -31,6 +31,12 @@ const useSettingsStore = create((set, get) => ({
     // 목표
     dailyWaterGoal: 2000, // ml
     dailyStepsGoal: 10000,
+    
+    // 수분 섭취 숏컷
+    waterShortcuts: [
+      { label: '컵', amount: 200 },
+      { label: '텀블러', amount: 500 },
+    ],
   },
   isLoading: false,
 
@@ -100,6 +106,30 @@ const useSettingsStore = create((set, get) => ({
     const updatedSettings = {
       ...settings,
       ...userInfo,
+    };
+    
+    set({ settings: updatedSettings });
+    await saveSettings(updatedSettings);
+  },
+
+  // 수분 섭취 숏컷 설정
+  setWaterShortcuts: async (shortcuts) => {
+    const { settings } = get();
+    const updatedSettings = {
+      ...settings,
+      waterShortcuts: shortcuts,
+    };
+    
+    set({ settings: updatedSettings });
+    await saveSettings(updatedSettings);
+  },
+
+  // 일일 수분 목표 설정
+  setDailyWaterGoal: async (goal) => {
+    const { settings } = get();
+    const updatedSettings = {
+      ...settings,
+      dailyWaterGoal: goal,
     };
     
     set({ settings: updatedSettings });
