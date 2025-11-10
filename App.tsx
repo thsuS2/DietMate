@@ -23,13 +23,18 @@ function App() {
   const loadWallet = useWalletStore(state => state.loadWallet);
 
   useEffect(() => {
-    // 알림 초기화
-    initNotifications();
-    
-    // 저장된 데이터 로드
-    loadRecords();
-    loadSettings();
-    loadWallet();
+    // 초기화 함수
+    const initialize = async () => {
+      // 알림 초기화
+      await initNotifications();
+      
+      // 저장된 데이터 로드
+      await loadRecords();
+      await loadSettings();
+      await loadWallet();
+    };
+
+    initialize();
   }, [loadRecords, loadSettings, loadWallet]);
 
   return (
