@@ -205,7 +205,8 @@ const useRecordStore = create((set, get) => ({
     const totalWater = waterData.reduce((sum, w) => sum + w, 0);
     const averageWater = totalWater / 7;
     const waterGoalDays = waterData.filter(w => w >= dailyWaterGoal).length;
-    const waterGoalRate = waterGoalDays / 7;
+    // 평균 수분 섭취량 대비 목표량 비율 (최대 100%)
+    const waterGoalRate = Math.min(averageWater / dailyWaterGoal, 1.0);
 
     // 운동 통계
     const exerciseData = weeklyRecords.map(r => {
