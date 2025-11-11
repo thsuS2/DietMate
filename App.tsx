@@ -9,7 +9,7 @@ import { StatusBar, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import AppNavigator from './src/navigation/AppNavigator';
-import { initNotifications } from './src/utils/notify';
+import { initNotifications, scheduleAllNotifications } from './src/utils/notify';
 import useRecordStore from './src/store/useRecordStore';
 import useSettingsStore from './src/store/useSettingsStore';
 import useWalletStore from './src/store/useWalletStore';
@@ -22,6 +22,7 @@ function App() {
   const loadRecords = useRecordStore(state => state.loadRecords);
   const loadSettings = useSettingsStore(state => state.loadSettings);
   const loadWallet = useWalletStore(state => state.loadWallet);
+  const settings = useSettingsStore(state => state.settings);
 
   useEffect(() => {
     // 초기화 함수
@@ -37,6 +38,13 @@ function App() {
 
     initialize();
   }, [loadRecords, loadSettings, loadWallet]);
+
+  // 설정이 로드되면 알림 스케줄링
+  useEffect(() => {
+    if (settings.notifications) {
+      scheduleAllNotifications(settings);
+    }
+  }, [settings.notifications, settings.recordReminderTime, settings.fastingReminderEnabled, settings.fastingStart, settings.fastingDuration]);
 
   return (
     <PaperProvider theme={paperTheme}>

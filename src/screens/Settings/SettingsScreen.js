@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
 import useSettingsStore from '../../store/useSettingsStore';
 import useWalletStore from '../../store/useWalletStore';
+import { scheduleAllNotifications, cancelAllNotifications } from '../../utils/notify';
 import { AppCard, AppText, AppButton, AppInput, AppModal, AppSelectBox } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -80,6 +81,12 @@ const SettingsScreen = () => {
       tempValues.fastingStart || settings.fastingStart,
       parseInt(tempValues.fastingDuration) || settings.fastingDuration
     );
+    
+    // 알림 재스케줄링
+    if (settings.notifications && settings.fastingReminderEnabled) {
+      await scheduleAllNotifications(settings);
+    }
+    
     setFastingModalVisible(false);
     setTempValues({});
   };
@@ -101,8 +108,25 @@ const SettingsScreen = () => {
       recordReminderTime: tempValues.recordReminderTime || settings.recordReminderTime,
       fastingReminderEnabled: tempValues.fastingReminderEnabled ?? settings.fastingReminderEnabled,
     });
+    
+    // 알림 재스케줄링
+    await scheduleAllNotifications(settings);
+    
     setNotificationModalVisible(false);
     setTempValues({});
+  };
+
+  // 알림 전체 ON/OFF 핸들러
+  const handleNotificationToggle = async (value) => {
+    await updateSettings({ notifications: value });
+    
+    if (value) {
+      // 알림 켜면 스케줄링
+      await scheduleAllNotifications(settings);
+    } else {
+      // 알림 끄면 모두 취소
+      await cancelAllNotifications();
+    }
   };
 
   // 데이터 초기화
@@ -279,7 +303,7 @@ const SettingsScreen = () => {
             <AppText variant="body1">알림 전체</AppText>
             <Switch
               value={settings.notifications}
-              onValueChange={(value) => updateSettings({ notifications: value })}
+              onValueChange={handleNotificationToggle}
               trackColor={{ false: colors.border, true: colors.primaryLight }}
               thumbColor={settings.notifications ? colors.primary : colors.textDisabled}
             />

@@ -163,6 +163,58 @@ export const requestNotificationPermissions = async () => {
   return settings.authorizationStatus >= 1; // 1 = authorized
 };
 
+/**
+ * 수분 알림만 취소
+ */
+export const cancelWaterReminders = async () => {
+  const hours = [10, 12, 14, 16, 18, 20];
+  for (let index = 0; index < hours.length; index++) {
+    await cancelNotification(`water-reminder-${index}`);
+  }
+};
+
+/**
+ * 모든 알림 스케줄링 (통합 함수)
+ */
+export const scheduleAllNotifications = async (settings) => {
+  if (!settings || !settings.notifications) {
+    // 알림이 꺼져있으면 모두 취소
+    await cancelAllNotifications();
+    return;
+  }
+
+  try {
+    // 1. 기록 알림
+    if (settings.recordReminderTime) {
+      const [hour, minute] = settings.recordReminderTime.split(':').map(Number);
+      await scheduleRecordReminder(hour, minute);
+      console.log(`기록 알림 설정: ${hour}:${minute}`);
+    }
+
+    // 2. 단식 알림
+    if (settings.fastingReminderEnabled && settings.fastingStart && settings.fastingDuration) {
+      const [startHour, startMinute] = settings.fastingStart.split(':').map(Number);
+      
+      // 단식 시작 알림
+      await scheduleFastingStartReminder(startHour, startMinute);
+      console.log(`단식 시작 알림 설정: ${startHour}:${startMinute - 10}`);
+      
+      // 단식 종료 알림
+      const endHour = (startHour + settings.fastingDuration) % 24;
+      await scheduleFastingEndReminder(endHour, startMinute);
+      console.log(`단식 종료 알림 설정: ${endHour}:${startMinute}`);
+    }
+
+    // 3. 수분 알림 (선택적)
+    // 현재는 비활성화, 추후 설정 추가 시 활성화
+    // await scheduleWaterReminder();
+
+    console.log('모든 알림 스케줄링 완료');
+  } catch (error) {
+    console.error('알림 스케줄링 실패:', error);
+  }
+};
+
 export default {
   initNotifications,
   showNotification,
@@ -173,6 +225,8 @@ export default {
   scheduleWaterReminder,
   cancelNotification,
   cancelAllNotifications,
+  cancelWaterReminders,
   requestNotificationPermissions,
+  scheduleAllNotifications,
 };
 
