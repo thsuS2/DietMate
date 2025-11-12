@@ -20,12 +20,17 @@ const WalletScreen = () => {
     transactions, 
     budget, 
     categories,
+    assets,
     getMonthTransactions, 
     getTransactionsByPeriod,
     getGroupedStatistics,
     getCategoryWithParent,
+    getTotalAssets,
     loadWallet,
   } = useWalletStore();
+
+  // 총 자산
+  const totalAssets = getTotalAssets();
 
   // 초기 로드
   useEffect(() => {
@@ -75,18 +80,27 @@ const WalletScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header with Settings Button */}
-      <View style={styles.header}>
-        <AppText variant="h2">💰 가계부</AppText>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('CategorySettings')}
-          style={styles.settingsButton}
-        >
-          <MaterialCommunityIcons name="cog" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView style={styles.scrollView}>
+        {/* 자산 카드 */}
+        <TouchableOpacity onPress={() => navigation.navigate('AssetManagement')}>
+          <AppCard variant="elevated" elevation="md" style={styles.assetCard}>
+            <View style={styles.assetHeader}>
+              <AppText variant="h3">💳 총 자산</AppText>
+              <AppText variant="body2" color="primary">
+                관리하기 →
+              </AppText>
+            </View>
+            <AppText variant="h1" color="primary" style={styles.assetAmount}>
+              {totalAssets.toLocaleString()}원
+            </AppText>
+            <View style={styles.assetSummary}>
+              <AppText variant="caption" color="textSecondary">
+                {assets.length}개 자산 등록됨
+              </AppText>
+            </View>
+          </AppCard>
+        </TouchableOpacity>
+
         {/* 예산 카드 */}
         <AppCard variant="elevated" elevation="md" style={styles.budgetCard}>
           <View style={styles.budgetHeader}>
@@ -325,22 +339,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  settingsButton: {
-    padding: spacing.xs,
-  },
   scrollView: {
     flex: 1,
     padding: spacing.md,
+  },
+  assetCard: {
+    marginBottom: spacing.md,
+    backgroundColor: colors.primaryLight,
+  },
+  assetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  assetAmount: {
+    marginBottom: spacing.xs,
+  },
+  assetSummary: {
+    marginTop: spacing.xs,
   },
   budgetCard: {
     marginBottom: spacing.md,

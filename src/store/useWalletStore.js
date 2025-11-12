@@ -69,6 +69,10 @@ const useWalletStore = create((set, get) => ({
     monthly: 2000000, // 월별 총 예산
     categories: {}, // 카테고리별 예산
   },
+  assets: [
+    // 자산 목록
+    // { id, name, type: 'bank'|'cash'|'card'|'savings', balance, icon, color }
+  ],
   isLoading: false,
 
   // 초기 데이터 로드
@@ -81,6 +85,7 @@ const useWalletStore = create((set, get) => ({
           categories: data.categories || DEFAULT_CATEGORIES,
           transactions: data.transactions || {},
           budget: data.budget || { monthly: 2000000, categories: {} },
+          assets: data.assets || [],
         });
       }
     } catch (error) {
@@ -92,8 +97,8 @@ const useWalletStore = create((set, get) => ({
 
   // 데이터 저장
   saveWallet: async () => {
-    const { categories, transactions, budget } = get();
-    await saveWalletData({ categories, transactions, budget });
+    const { categories, transactions, budget, assets } = get();
+    await saveWalletData({ categories, transactions, budget, assets });
   },
 
   // 거래 추가
@@ -375,6 +380,52 @@ const useWalletStore = create((set, get) => ({
       totalExpense,
       groups: groupedData,
     };
+  },
+
+  // ========================================
+  // 자산 관리
+  // ========================================
+
+  // 자산 추가
+  addAsset: async (asset) => {
+    const { assets } = get();
+    const newAsset = {
+      ...asset,
+      id: `asset_${Date.now()}`,
+    };
+
+    set({ assets: [...assets, newAsset] });
+    await get().saveWallet();
+  },
+
+  // 자산 수정
+  updateAsset: async (assetId, updates) => {
+    const { assets } = get();
+    set({
+      assets: assets.map(asset =>
+        asset.id === assetId ? { ...asset, ...updates } : asset
+      ),
+    });
+    await get().saveWallet();
+  },
+
+  // 자산 삭제
+  deleteAsset: async (assetId) => {
+    const { assets } = get();
+    set({ assets: assets.filter(asset => asset.id !== assetId) });
+    await get().saveWallet();
+  },
+
+  // 총 자산 계산
+  getTotalAssets: () => {
+    const { assets } = get();
+    return assets.reduce((sum, asset) => sum + (asset.balance || 0), 0);
+  },
+
+  // 타입별 자산 합계
+  getAssetsByType: (type) => {
+    const { assets } = get();
+    return assets.filter(asset => asset.type === type);
   },
 }));
 

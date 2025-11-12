@@ -11,6 +11,7 @@ import RecordScreen from '../screens/Record/RecordScreen';
 import StatsScreen from '../screens/Stats/StatsScreen';
 import WalletScreen from '../screens/Wallet/WalletScreen';
 import CategorySettingsScreen from '../screens/Wallet/CategorySettingsScreen';
+import AssetManagementScreen from '../screens/Wallet/AssetManagementScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -19,18 +20,40 @@ const WalletStack = createNativeStackNavigator();
 // Wallet Stack Navigator
 const WalletStackNavigator = () => {
   return (
-    <WalletStack.Navigator>
+    <WalletStack.Navigator
+      screenOptions={{
+        headerTintColor: colors.primary,
+      }}
+    >
       <WalletStack.Screen 
         name="WalletMain" 
         component={WalletScreen}
-        options={{ headerShown: false }}
+        options={({ navigation }) => ({
+          title: '가계부',
+          headerRight: () => (
+            <Icon.Button
+              name="cog"
+              size={24}
+              color={colors.primary}
+              backgroundColor="transparent"
+              onPress={() => navigation.navigate('CategorySettings')}
+              iconStyle={{ marginRight: 0 }}
+            />
+          ),
+        })}
       />
       <WalletStack.Screen 
         name="CategorySettings" 
         component={CategorySettingsScreen}
         options={{ 
           title: '카테고리 관리',
-          headerTintColor: colors.primary,
+        }}
+      />
+      <WalletStack.Screen 
+        name="AssetManagement" 
+        component={AssetManagementScreen}
+        options={{ 
+          title: '자산 관리',
         }}
       />
     </WalletStack.Navigator>
