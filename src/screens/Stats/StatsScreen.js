@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { getWeekByOffset, formatDateKorean, formatDateShort, isCurrentWeek } from '../../utils/date';
 import useRecordStore from '../../store/useRecordStore';
@@ -17,44 +17,70 @@ const StatsScreen = () => {
   const { records, getWeeklyStats, getWeeklyRecords, getRecordByDate } = useRecordStore();
   const { settings } = useSettingsStore();
 
-  // 주간 범위
-  const weekRange = getWeekByOffset(weekOffset);
-  const isThisWeek = isCurrentWeek(weekRange.start, weekRange.end);
+  // 주간 범위 - useMemo로 캐싱
+  const weekRange = useMemo(
+    () => getWeekByOffset(weekOffset),
+    [weekOffset]
+  );
+  
+  const isThisWeek = useMemo(
+    () => isCurrentWeek(weekRange.start, weekRange.end),
+    [weekRange.start, weekRange.end]
+  );
 
-  // 통계 데이터
-  const stats = getWeeklyStats(weekRange.start, weekRange.end, settings);
-  const weeklyRecords = getWeeklyRecords(weekRange.start, weekRange.end);
+  // 통계 데이터 - useMemo로 캐싱
+  const stats = useMemo(
+    () => getWeeklyStats(weekRange.start, weekRange.end, settings),
+    [getWeeklyStats, weekRange.start, weekRange.end, settings]
+  );
+  
+  const weeklyRecords = useMemo(
+    () => getWeeklyRecords(weekRange.start, weekRange.end),
+    [getWeeklyRecords, weekRange.start, weekRange.end]
+  );
 
-  // 차트 데이터 준비
-  const dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+  // 차트 데이터 준비 - useMemo로 캐싱
+  const dayLabels = useMemo(() => ['월', '화', '수', '목', '금', '토', '일'], []);
 
-  // 수분 차트 데이터
-  const waterChartData = {
-    labels: dayLabels,
-    datasets: [{ data: stats.water.dailyData }],
-  };
+  // 수분 차트 데이터 - useMemo로 캐싱
+  const waterChartData = useMemo(
+    () => ({
+      labels: dayLabels,
+      datasets: [{ data: stats.water.dailyData }],
+    }),
+    [dayLabels, stats.water.dailyData]
+  );
 
-  // 운동 차트 데이터
-  const exerciseChartData = {
-    labels: dayLabels,
-    datasets: [{ data: stats.exercise.dailyData }],
-  };
+  // 운동 차트 데이터 - useMemo로 캐싱
+  const exerciseChartData = useMemo(
+    () => ({
+      labels: dayLabels,
+      datasets: [{ data: stats.exercise.dailyData }],
+    }),
+    [dayLabels, stats.exercise.dailyData]
+  );
 
-  // 몸무게 차트 데이터
-  const weightChartData = {
-    labels: dayLabels.slice(0, stats.weight.data.length),
-    datasets: [{ data: stats.weight.data.length > 0 ? stats.weight.data : [0] }],
-  };
+  // 몸무게 차트 데이터 - useMemo로 캐싱
+  const weightChartData = useMemo(
+    () => ({
+      labels: dayLabels.slice(0, stats.weight.data.length),
+      datasets: [{ data: stats.weight.data.length > 0 ? stats.weight.data : [0] }],
+    }),
+    [dayLabels, stats.weight.data]
+  );
 
-  // 목표 달성률 차트 데이터
-  const progressChartData = {
-    labels: ['수분', '운동', '기록'],
-    data: [
-      stats.water.goalRate,
-      stats.exercise.count / 7, // 주 7일 중 운동한 비율
-      stats.recordRate,
-    ],
-  };
+  // 목표 달성률 차트 데이터 - useMemo로 캐싱
+  const progressChartData = useMemo(
+    () => ({
+      labels: ['수분', '운동', '기록'],
+      data: [
+        stats.water.goalRate,
+        stats.exercise.count / 7, // 주 7일 중 운동한 비율
+        stats.recordRate,
+      ],
+    }),
+    [stats.water.goalRate, stats.exercise.count, stats.recordRate]
+  );
 
   // 날짜 클릭 핸들러
   const handleDatePress = (date) => {
@@ -62,8 +88,11 @@ const StatsScreen = () => {
     setDetailModalVisible(true);
   };
 
-  // 선택된 날짜의 상세 데이터
-  const selectedDateRecord = selectedDate ? getRecordByDate(selectedDate) : null;
+  // 선택된 날짜의 상세 데이터 - useMemo로 캐싱
+  const selectedDateRecord = useMemo(
+    () => selectedDate ? getRecordByDate(selectedDate) : null,
+    [selectedDate, getRecordByDate]
+  );
 
   return (
     <View style={styles.container}>
