@@ -208,6 +208,43 @@ export const isFasting = (startTime, duration) => {
   }
 };
 
+/**
+ * 날짜를 시간 부분 없이 정규화 (반복 거래 계산용)
+ */
+export const normalizeDate = (date) => {
+  const d = new Date(date);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+};
+
+/**
+ * YYYY-MM-DD 문자열을 Date 객체로 변환
+ */
+export const parseDateString = (dateString) => {
+  if (!dateString) return null;
+  const [year, month, day] = dateString.split('-').map(Number);
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+  return new Date(year, month - 1, day);
+};
+
+/**
+ * 두 날짜 사이의 일수 차이 계산
+ */
+export const diffInDays = (start, end) => {
+  const startDate = normalizeDate(start);
+  const endDate = normalizeDate(end);
+  const diff = endDate.getTime() - startDate.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+};
+
+/**
+ * 두 날짜 사이의 월수 차이 계산
+ */
+export const diffInMonths = (start, end) => {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+};
+
 export default {
   getTodayString,
   formatDate,
@@ -227,5 +264,9 @@ export default {
   getGreeting,
   getFastingEndTime,
   isFasting,
+  normalizeDate,
+  parseDateString,
+  diffInDays,
+  diffInMonths,
 };
 
