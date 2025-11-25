@@ -1,5 +1,6 @@
 import notifee, { TriggerType, RepeatFrequency } from '@notifee/react-native';
 import { Platform } from 'react-native';
+import logger from './logger';
 
 /**
  * 알림 관련 헬퍼 함수들 (Notifee)
@@ -22,7 +23,7 @@ export const initNotifications = async () => {
     vibration: true,
   });
 
-  console.log('Notifee initialized successfully');
+  logger.log('Notifee initialized successfully');
 };
 
 /**
@@ -188,7 +189,7 @@ export const scheduleAllNotifications = async (settings) => {
     if (settings.recordReminderTime) {
       const [hour, minute] = settings.recordReminderTime.split(':').map(Number);
       await scheduleRecordReminder(hour, minute);
-      console.log(`기록 알림 설정: ${hour}:${minute}`);
+      logger.log(`기록 알림 설정: ${hour}:${minute}`);
     }
 
     // 2. 단식 알림
@@ -197,21 +198,21 @@ export const scheduleAllNotifications = async (settings) => {
       
       // 단식 시작 알림
       await scheduleFastingStartReminder(startHour, startMinute);
-      console.log(`단식 시작 알림 설정: ${startHour}:${startMinute - 10}`);
+      logger.log(`단식 시작 알림 설정: ${startHour}:${startMinute - 10}`);
       
       // 단식 종료 알림
       const endHour = (startHour + settings.fastingDuration) % 24;
       await scheduleFastingEndReminder(endHour, startMinute);
-      console.log(`단식 종료 알림 설정: ${endHour}:${startMinute}`);
+      logger.log(`단식 종료 알림 설정: ${endHour}:${startMinute}`);
     }
 
     // 3. 수분 알림 (선택적)
     // 현재는 비활성화, 추후 설정 추가 시 활성화
     // await scheduleWaterReminder();
 
-    console.log('모든 알림 스케줄링 완료');
+    logger.log('모든 알림 스케줄링 완료');
   } catch (error) {
-    console.error('알림 스케줄링 실패:', error);
+    logger.error('알림 스케줄링 실패', error);
   }
 };
 

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import logger from './logger';
 
 /**
  * AsyncStorage 헬퍼 함수들
@@ -19,7 +20,7 @@ export const loadRecords = async () => {
     const data = await AsyncStorage.getItem(KEYS.RECORDS);
     return data ? JSON.parse(data) : {};
   } catch (error) {
-    console.error('기록 로드 실패:', error);
+    logger.error('기록 로드 실패', error);
     return {};
   }
 };
@@ -32,7 +33,7 @@ export const saveRecords = async (records) => {
     await AsyncStorage.setItem(KEYS.RECORDS, JSON.stringify(records));
     return true;
   } catch (error) {
-    console.error('기록 저장 실패:', error);
+    logger.error('기록 저장 실패', error);
     return false;
   }
 };
@@ -45,7 +46,7 @@ export const loadSettings = async () => {
     const data = await AsyncStorage.getItem(KEYS.SETTINGS);
     return data ? JSON.parse(data) : {};
   } catch (error) {
-    console.error('설정 로드 실패:', error);
+    logger.error('설정 로드 실패', error);
     return {};
   }
 };
@@ -58,7 +59,7 @@ export const saveSettings = async (settings) => {
     await AsyncStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
     return true;
   } catch (error) {
-    console.error('설정 저장 실패:', error);
+    logger.error('설정 저장 실패', error);
     return false;
   }
 };
@@ -71,7 +72,7 @@ export const loadWallet = async () => {
     const data = await AsyncStorage.getItem(KEYS.WALLET);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error('가계부 로드 실패:', error);
+    logger.error('가계부 로드 실패', error);
     return [];
   }
 };
@@ -84,7 +85,7 @@ export const saveWallet = async (wallet) => {
     await AsyncStorage.setItem(KEYS.WALLET, JSON.stringify(wallet));
     return true;
   } catch (error) {
-    console.error('가계부 저장 실패:', error);
+    logger.error('가계부 저장 실패', error);
     return false;
   }
 };
@@ -97,7 +98,7 @@ export const clearAllData = async () => {
     await AsyncStorage.multiRemove([KEYS.RECORDS, KEYS.SETTINGS, KEYS.WALLET]);
     return true;
   } catch (error) {
-    console.error('데이터 삭제 실패:', error);
+    logger.error('데이터 삭제 실패', error);
     return false;
   }
 };
@@ -110,7 +111,7 @@ export const clearData = async (key) => {
     await AsyncStorage.removeItem(key);
     return true;
   } catch (error) {
-    console.error('데이터 삭제 실패:', error);
+    logger.error('데이터 삭제 실패', error);
     return false;
   }
 };

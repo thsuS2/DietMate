@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { loadSettings, saveSettings } from '../utils/storage';
+import logger from '../utils/logger';
 
 /**
  * 설정 관리용 Zustand 스토어
@@ -47,7 +48,7 @@ const useSettingsStore = create((set, get) => ({
       const settings = await loadSettings();
       set({ settings: { ...get().settings, ...settings }, isLoading: false });
     } catch (error) {
-      console.error('설정 로드 실패:', error);
+      logger.error('설정 로드 실패', error);
       set({ isLoading: false });
     }
   },

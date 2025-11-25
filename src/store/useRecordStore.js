@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { loadRecords, saveRecords } from '../utils/storage';
+import logger from '../utils/logger';
 
 /**
  * 기록 관리용 Zustand 스토어
@@ -17,7 +18,7 @@ const useRecordStore = create((set, get) => ({
       const records = await loadRecords();
       set({ records, isLoading: false });
     } catch (error) {
-      console.error('기록 로드 실패:', error);
+      logger.error('기록 로드 실패', error);
       set({ isLoading: false });
     }
   },
