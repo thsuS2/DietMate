@@ -1,5 +1,156 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import logger from '../utils/logger';
+import { 
+  normalizeDate, 
+  parseDateString, 
+  formatDate, 
+  getTodayString, 
+  diffInDays, 
+  diffInMonths 
+} from '../utils/date';
+
+// parseDate는 parseDateString로 통일
+const parseDate = parseDateString;
+
+const clampDayOfMonth = (value, fallback) => {
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) return fallback;
+  return Math.min(Math.max(Math.floor(parsed), 1), 31);
+};
+
+const normalizeDaysOfWeek = (days) => {
+  if (!Array.isArray(days)) {
+    return [];
+  }
+
+  const normalized = days
+    .map((day) => {
+      const parsed = Number(day);
+      if (Number.isNaN(parsed)) return null;
+      return ((parsed % 7) + 7) % 7;
+    })
+    .filter((day) => day !== null);
+
+  return Array.from(new Set(normalized)).sort((a, b) => a - b);
+};
+
+const RECURRENCE_FREQUENCIES = ['daily', 'weekly', 'monthly'];
+
+const normalizeRecurringTemplate = (template) => {
+  const nowIso = new Date().toISOString();
+  const startDateString = template.startDate || getTodayString();
+  const startDate = parseDate(startDateString) || new Date();
+  const frequency = RECURRENCE_FREQUENCIES.includes(template.frequency)
+    ? template.frequency
+    : 'monthly';
+  const interval = template.interval && template.interval > 0
+    ? Math.floor(template.interval)
+    : 1;
+
+  const daysOfWeekCandidates = template.daysOfWeek ?? (template.dayOfWeek !== undefined
+    ? [template.dayOfWeek]
+    : []);
+  const normalizedDays = normalizeDaysOfWeek(daysOfWeekCandidates);
+  const defaultDayOfWeek = startDate.getDay();
+  const defaultDayOfMonth = startDate.getDate();
+
+  return {
+    id: template.id,
+    name: template.name || '',
+    type: template.type || 'expense',
+    category: template.category,
+    amount: Number(template.amount) || 0,
+    memo: template.memo || '',
+    frequency,
+    interval,
+    startDate: formatDate(startDate),
+    endDate: template.endDate || null,
+    dayOfMonth: clampDayOfMonth(
+      template.dayOfMonth !== undefined ? template.dayOfMonth : defaultDayOfMonth,
+      defaultDayOfMonth
+    ),
+    daysOfWeek: normalizedDays.length > 0 ? normalizedDays : [defaultDayOfWeek],
+    time: template.time || '09:00',
+    autoCreate: template.autoCreate !== undefined ? !!template.autoCreate : true,
+    lastGeneratedDate: template.lastGeneratedDate || null,
+    createdAt: template.createdAt || nowIso,
+    updatedAt: template.updatedAt || nowIso,
+  };
+};
+
+const calculateRecurringOccurrences = (template, rangeStart, rangeEnd) => {
+  const occurrences = [];
+  if (!rangeStart || !rangeEnd) return occurrences;
+
+  const start = normalizeDate(rangeStart);
+  const end = normalizeDate(rangeEnd);
+  if (start > end) return occurrences;
+
+  const templateStart = parseDate(template.startDate) || start;
+  const interval = template.interval && template.interval > 0 ? template.interval : 1;
+  const effectiveFrequency = template.frequency || 'monthly';
+
+  let current = new Date(start);
+  while (current <= end) {
+    const currentDateString = formatDate(current);
+    const currentDate = normalizeDate(current);
+
+    if (currentDate < templateStart) {
+      current.setDate(current.getDate() + 1);
+      continue;
+    }
+
+    const templateEnd = template.endDate ? parseDate(template.endDate) : null;
+    if (templateEnd && currentDate > templateEnd) {
+      break;
+    }
+
+    const dayDiff = diffInDays(templateStart, currentDate);
+
+    const pushOccurrence = () => occurrences.push(currentDateString);
+
+    switch (effectiveFrequency) {
+      case 'daily': {
+        if (dayDiff >= 0 && dayDiff % interval === 0) {
+          pushOccurrence();
+        }
+        break;
+      }
+      case 'weekly': {
+        const daysOfWeek = Array.isArray(template.daysOfWeek) && template.daysOfWeek.length > 0
+          ? template.daysOfWeek
+          : [templateStart.getDay()];
+        if (daysOfWeek.includes(currentDate.getDay())) {
+          const weekDiff = Math.floor(dayDiff / 7);
+          if (weekDiff >= 0 && weekDiff % interval === 0) {
+            pushOccurrence();
+          }
+        }
+        break;
+      }
+      case 'monthly': {
+        const targetDay = template.dayOfMonth || templateStart.getDate();
+        if (currentDate.getDate() === targetDay) {
+          const monthDiff = diffInMonths(templateStart, currentDate);
+          if (monthDiff >= 0 && monthDiff % interval === 0) {
+            pushOccurrence();
+          }
+        }
+        break;
+      }
+      default: {
+        if (dayDiff >= 0 && dayDiff % interval === 0) {
+          pushOccurrence();
+        }
+      }
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return occurrences;
+};
 
 /**
  * 가계부 관리용 Zustand 스토어
@@ -48,7 +199,7 @@ const loadWalletData = async () => {
     const data = await AsyncStorage.getItem(WALLET_STORAGE_KEY);
     return data ? JSON.parse(data) : null;
   } catch (error) {
-    console.error('가계부 데이터 로드 실패:', error);
+    logger.error('가계부 데이터 로드 실패', error);
     return null;
   }
 };
@@ -57,7 +208,7 @@ const saveWalletData = async (data) => {
   try {
     await AsyncStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
-    console.error('가계부 데이터 저장 실패:', error);
+    logger.error('가계부 데이터 저장 실패', error);
   }
 };
 
@@ -65,6 +216,7 @@ const useWalletStore = create((set, get) => ({
   // 상태
   categories: DEFAULT_CATEGORIES,
   transactions: {}, // { '2025-11': [...], '2025-10': [...] }
+  recurringTemplates: [],
   budget: {
     monthly: 2000000, // 월별 총 예산
     categories: {}, // 카테고리별 예산
@@ -84,12 +236,13 @@ const useWalletStore = create((set, get) => ({
         set({
           categories: data.categories || DEFAULT_CATEGORIES,
           transactions: data.transactions || {},
+          recurringTemplates: data.recurringTemplates || [],
           budget: data.budget || { monthly: 2000000, categories: {} },
           assets: data.assets || [],
         });
       }
     } catch (error) {
-      console.error('가계부 로드 실패:', error);
+      logger.error('가계부 로드 실패', error);
     } finally {
       set({ isLoading: false });
     }
@@ -97,8 +250,8 @@ const useWalletStore = create((set, get) => ({
 
   // 데이터 저장
   saveWallet: async () => {
-    const { categories, transactions, budget, assets } = get();
-    await saveWalletData({ categories, transactions, budget, assets });
+    const { categories, transactions, recurringTemplates, budget, assets } = get();
+    await saveWalletData({ categories, transactions, recurringTemplates, budget, assets });
   },
 
   // 거래 추가
@@ -167,6 +320,189 @@ const useWalletStore = create((set, get) => ({
       set({ transactions: updatedTransactions });
       await get().saveWallet();
     }
+  },
+
+  // ========================================
+  // 반복 거래 템플릿
+  // ========================================
+
+  getRecurringTemplates: () => get().recurringTemplates,
+
+  addRecurringTemplate: async (template) => {
+    const { recurringTemplates } = get();
+    const normalized = normalizeRecurringTemplate({
+      ...template,
+      id: template?.id || `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    });
+
+    set({
+      recurringTemplates: [...recurringTemplates, normalized],
+    });
+    await get().saveWallet();
+
+    return normalized;
+  },
+
+  updateRecurringTemplate: async (templateId, updates) => {
+    const { recurringTemplates } = get();
+    let updatedTemplate = null;
+
+    const nextTemplates = recurringTemplates.map((template) => {
+      if (template.id !== templateId) return template;
+
+      const merged = {
+        ...template,
+        ...updates,
+        id: template.id,
+        createdAt: template.createdAt,
+        lastGeneratedDate: updates.lastGeneratedDate ?? template.lastGeneratedDate,
+      };
+
+      updatedTemplate = normalizeRecurringTemplate({
+        ...merged,
+        updatedAt: new Date().toISOString(),
+      });
+
+      return updatedTemplate;
+    });
+
+    if (!updatedTemplate) {
+      return null;
+    }
+
+    set({ recurringTemplates: nextTemplates });
+    await get().saveWallet();
+    return updatedTemplate;
+  },
+
+  deleteRecurringTemplate: async (templateId) => {
+    const { recurringTemplates } = get();
+    const nextTemplates = recurringTemplates.filter((template) => template.id !== templateId);
+
+    if (nextTemplates.length === recurringTemplates.length) {
+      return;
+    }
+
+    set({ recurringTemplates: nextTemplates });
+    await get().saveWallet();
+  },
+
+  generateRecurringTransactions: async ({ startDate, endDate } = {}) => {
+    const { transactions, recurringTemplates } = get();
+    const todayString = getTodayString();
+    const rangeStartString = startDate || todayString;
+    const rangeEndString = endDate || rangeStartString;
+
+    const rangeStart = parseDate(rangeStartString);
+    const rangeEnd = parseDate(rangeEndString);
+
+    if (!rangeStart || !rangeEnd) {
+      return [];
+    }
+
+    let actualStart = rangeStart;
+    let actualEnd = rangeEnd;
+    if (actualStart > actualEnd) {
+      actualStart = rangeEnd;
+      actualEnd = rangeStart;
+    }
+
+    const transactionsCopy = Object.keys(transactions).reduce((acc, month) => {
+      acc[month] = [...transactions[month]];
+      return acc;
+    }, {});
+
+    const ensureMonthBucket = (monthKey) => {
+      if (!transactionsCopy[monthKey]) {
+        transactionsCopy[monthKey] = [];
+      }
+      return transactionsCopy[monthKey];
+    };
+
+    const hasRecurringOnDate = (templateId, dateString) => {
+      const monthKey = dateString.substring(0, 7);
+      const list = transactionsCopy[monthKey] || [];
+      return list.some(
+        (txn) => txn.recurringId === templateId && txn.date === dateString
+      );
+    };
+
+    const generated = [];
+    const updatedTemplates = [...recurringTemplates];
+
+    recurringTemplates.forEach((template, index) => {
+      if (template.autoCreate === false) {
+        return;
+      }
+
+      const templateStart = parseDate(template.startDate) || actualStart;
+      const templateEnd = template.endDate ? parseDate(template.endDate) : null;
+      const effectiveStart = templateStart > actualStart ? templateStart : actualStart;
+      const effectiveEnd = templateEnd && templateEnd < actualEnd ? templateEnd : actualEnd;
+      if (effectiveEnd && effectiveStart > effectiveEnd) {
+        return;
+      }
+
+      const occurrenceEnd = effectiveEnd || actualEnd;
+      const occurrences = calculateRecurringOccurrences(template, effectiveStart, occurrenceEnd);
+      if (!occurrences.length) {
+        return;
+      }
+
+      let lastGeneratedDate = template.lastGeneratedDate;
+
+      occurrences.forEach((dateString) => {
+        if (hasRecurringOnDate(template.id, dateString)) {
+          return;
+        }
+
+        const newTransaction = {
+          id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          type: template.type,
+          amount: template.amount,
+          category: template.category,
+          memo: template.memo || template.name || '',
+          date: dateString,
+          time: template.time || '09:00',
+          timestamp: new Date().toISOString(),
+          recurringId: template.id,
+        };
+
+        const monthKey = dateString.substring(0, 7);
+        const bucket = ensureMonthBucket(monthKey);
+        bucket.push(newTransaction);
+        generated.push(newTransaction);
+        lastGeneratedDate = dateString;
+      });
+
+      if (lastGeneratedDate && lastGeneratedDate !== template.lastGeneratedDate) {
+        updatedTemplates[index] = {
+          ...template,
+          lastGeneratedDate,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+    });
+
+    if (!generated.length) {
+      return [];
+    }
+
+    Object.keys(transactionsCopy).forEach((month) => {
+      transactionsCopy[month] = [...transactionsCopy[month]].sort((a, b) => {
+        const dateA = new Date(`${a.date} ${a.time || '00:00'}`);
+        const dateB = new Date(`${b.date} ${b.time || '00:00'}`);
+        return dateB.getTime() - dateA.getTime();
+      });
+    });
+
+    set({
+      transactions: transactionsCopy,
+      recurringTemplates: updatedTemplates,
+    });
+
+    await get().saveWallet();
+    return generated;
   },
 
   // 특정 월 거래 내역 가져오기

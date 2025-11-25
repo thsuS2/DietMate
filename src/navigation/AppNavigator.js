@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -12,6 +13,7 @@ import StatsScreen from '../screens/Stats/StatsScreen';
 import WalletScreen from '../screens/Wallet/WalletScreen';
 import CategorySettingsScreen from '../screens/Wallet/CategorySettingsScreen';
 import AssetManagementScreen from '../screens/Wallet/AssetManagementScreen';
+import RecurringTransactionsScreen from '../screens/Wallet/RecurringTransactionsScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -31,14 +33,24 @@ const WalletStackNavigator = () => {
         options={({ navigation }) => ({
           title: '가계부',
           headerRight: () => (
-            <Icon.Button
-              name="cog"
-              size={24}
-              color={colors.primary}
-              backgroundColor="transparent"
-              onPress={() => navigation.navigate('CategorySettings')}
-              iconStyle={{ marginRight: 0 }}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Icon.Button
+                name="repeat"
+                size={24}
+                color={colors.primary}
+                backgroundColor="transparent"
+                onPress={() => navigation.navigate('RecurringTransactions')}
+                iconStyle={{ marginRight: 0 }}
+              />
+              <Icon.Button
+                name="cog"
+                size={24}
+                color={colors.primary}
+                backgroundColor="transparent"
+                onPress={() => navigation.navigate('CategorySettings')}
+                iconStyle={{ marginRight: 0 }}
+              />
+            </View>
           ),
         })}
       />
@@ -47,6 +59,13 @@ const WalletStackNavigator = () => {
         component={CategorySettingsScreen}
         options={{ 
           title: '카테고리 관리',
+        }}
+      />
+      <WalletStack.Screen
+        name="RecurringTransactions"
+        component={RecurringTransactionsScreen}
+        options={{
+          title: '반복 거래 관리',
         }}
       />
       <WalletStack.Screen 
