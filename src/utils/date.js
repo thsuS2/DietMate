@@ -245,6 +245,36 @@ export const diffInMonths = (start, end) => {
   return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
 };
 
+/**
+ * 월별 날짜 범위 계산 (YYYY-MM 형식)
+ */
+export const getMonthRange = (yearMonth) => {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0); // 해당 월의 마지막 날
+  
+  return {
+    start: formatDate(start),
+    end: formatDate(end),
+  };
+};
+
+/**
+ * 이전 N개월의 yearMonth 배열 반환
+ */
+export const getPreviousMonths = (count = 6) => {
+  const today = new Date();
+  const months = [];
+  
+  for (let i = 0; i < count; i++) {
+    const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    months.push(yearMonth);
+  }
+  
+  return months.reverse(); // 오래된 순서부터
+};
+
 export default {
   getTodayString,
   formatDate,
@@ -268,5 +298,7 @@ export default {
   parseDateString,
   diffInDays,
   diffInMonths,
+  getMonthRange,
+  getPreviousMonths,
 };
 

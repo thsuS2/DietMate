@@ -273,12 +273,12 @@ DietMate/
   - ✅ 카테고리 선택 UX 개선 (1차만 선택 가능, 2차 선택 분리)
   - ⏳ 자동 생성 QA 시나리오 및 테스트 케이스 정리
 
-- [ ] **상세 통계 화면**
-  - 월간 리포트 (자동 생성)
-  - 월별 비교 막대 차트
-  - 트렌드 분석 (증가/감소 추이)
-  - 예산 초과 알림
-  - TOP 3 지출 카테고리
+- [x] **상세 통계 화면** ✅ 2025-11-13 완료
+  - [x] 월간 리포트 (자동 생성)
+  - [x] 월별 비교 막대 차트 (최근 6개월)
+  - [x] 트렌드 분석 (월별 지출 추이)
+  - [x] 예산 초과 알림 (전체/카테고리별)
+  - [x] TOP 3 지출 카테고리 (순위, 금액, 비율)
 
 - [ ] **카테고리별 예산 설정**
   - 각 1차 카테고리별로 예산 할당
@@ -431,8 +431,12 @@ DietMate/
    - 관리 화면 세부 편의 기능 확장
    - ✅ 2025-11-13: Zustand 스토어 템플릿/자동 생성 로직 완성 (1차 UI 구현 완료, QA 대기)
 
-2. **상세 통계** (banking.md 3번째 미구현)
-   - 월간 리포트 화면
+2. **상세 통계** ✅ 2025-11-13 완료
+   - [x] 월간 리포트 화면 (WalletDetailStatsScreen)
+   - [x] 월별 비교 막대 차트
+   - [x] 트렌드 라인 차트
+   - [x] 예산 초과 알림
+   - [x] TOP 3 카테고리 표시
    - 월별 비교 차트
    - 예산 초과 알림
 
@@ -568,8 +572,11 @@ import { getTodayString, formatDateKorean, getWeekByOffset } from '../../utils/d
 ## 📚 참고 문서
 
 - **README.md**: 프로젝트 초기 기획 및 목표
+- **SETUP_GUIDE.md**: 다른 PC에서 개발 환경 설정 가이드
 - **Data.md**: 데이터 구조 설계
 - **banking.md**: 가계부 기능 기획서
+- **AIRule.md**: 개발 규칙 및 절차
+- **CODE_REVIEW.md**: 코드 리뷰 결과
 - **.Work/**: 일일 작업 로그
 - **.Letter/**: 반성문 (실수 기록)
 
@@ -591,6 +598,6 @@ import { getTodayString, formatDateKorean, getWeekByOffset } from '../../utils/d
 
 **최종 업데이트**: 2025년 11월 13일  
 **작성자**: AI Assistant  
-**버전**: v1.1 Code Quality Improved  
+**버전**: v1.2 Wallet Detail Stats Added  
 **상태**: ✅ Ready for Enhancement (Code Quality: 95%)
 

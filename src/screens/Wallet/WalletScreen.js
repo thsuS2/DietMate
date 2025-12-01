@@ -158,10 +158,15 @@ const WalletScreen = () => {
         <AppCard variant="elevated" elevation="md" style={styles.budgetCard}>
           <View style={styles.budgetHeader}>
             <AppText variant="h3">📊 이번 달 예산</AppText>
-            <AppText variant="h2" color="wallet">
-              {groupedStats.totalExpense.toLocaleString()}원
-            </AppText>
+            <TouchableOpacity onPress={() => navigation.navigate('WalletDetailStats')}>
+              <AppText variant="body2" color="primary">
+                상세 통계 →
+              </AppText>
+            </TouchableOpacity>
           </View>
+          <AppText variant="h2" color="wallet">
+            {groupedStats.totalExpense.toLocaleString()}원
+          </AppText>
           <AppText variant="body2" color="textSecondary" align="right">
             예산: {budget.monthly.toLocaleString()}원
           </AppText>

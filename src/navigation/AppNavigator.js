@@ -14,6 +14,7 @@ import WalletScreen from '../screens/Wallet/WalletScreen';
 import CategorySettingsScreen from '../screens/Wallet/CategorySettingsScreen';
 import AssetManagementScreen from '../screens/Wallet/AssetManagementScreen';
 import RecurringTransactionsScreen from '../screens/Wallet/RecurringTransactionsScreen';
+import WalletDetailStatsScreen from '../screens/Wallet/WalletDetailStatsScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -73,6 +74,13 @@ const WalletStackNavigator = () => {
         component={AssetManagementScreen}
         options={{ 
           title: '자산 관리',
+        }}
+      />
+      <WalletStack.Screen 
+        name="WalletDetailStats" 
+        component={WalletDetailStatsScreen}
+        options={{ 
+          title: '상세 통계',
         }}
       />
     </WalletStack.Navigator>

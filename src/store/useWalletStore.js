@@ -763,6 +763,114 @@ const useWalletStore = create((set, get) => ({
     const { assets } = get();
     return assets.filter(asset => asset.type === type);
   },
+
+  // ========================================
+  // 상세 통계 (월간 리포트용)
+  // ========================================
+
+  // 여러 달의 통계를 한번에 계산
+  getMonthlyStatistics: (months = 6) => {
+    const { transactions, budget } = get();
+    const today = new Date();
+    const results = [];
+
+    for (let i = 0; i < months; i++) {
+      const targetDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const yearMonth = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      const monthTransactions = get().getMonthTransactions(yearMonth);
+      const income = monthTransactions.filter(t => t.type === 'income');
+      const expenses = monthTransactions.filter(t => t.type === 'expense');
+      
+      const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
+      const totalExpense = expenses.reduce((sum, t) => sum + t.amount, 0);
+      const balance = totalIncome - totalExpense;
+      const budgetUsage = budget.monthly > 0 ? totalExpense / budget.monthly : 0;
+
+      results.push({
+        yearMonth,
+        monthLabel: `${targetDate.getMonth() + 1}월`,
+        totalIncome,
+        totalExpense,
+        balance,
+        budgetUsage,
+        transactionCount: monthTransactions.length,
+      });
+    }
+
+    return results.reverse(); // 오래된 순서부터
+  },
+
+  // 월별 추이 데이터 (트렌드 분석용)
+  getTrendData: (startMonth, endMonth) => {
+    const start = new Date(startMonth + '-01');
+    const end = new Date(endMonth + '-01');
+    const results = [];
+
+    let current = new Date(start);
+    while (current <= end) {
+      const yearMonth = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+      const stats = get().getStatistics(yearMonth);
+      
+      results.push({
+        yearMonth,
+        monthLabel: `${current.getMonth() + 1}월`,
+        totalExpense: stats.totalExpense,
+        totalIncome: stats.totalIncome,
+        balance: stats.balance,
+        budgetUsage: stats.budgetUsage,
+      });
+
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    return results;
+  },
+
+  // 예산 초과 체크
+  checkBudgetOverrun: (yearMonth) => {
+    const { budget } = get();
+    const stats = get().getStatistics(yearMonth);
+    const groupedStats = get().getGroupedStatistics(yearMonth);
+
+    const overruns = {
+      total: stats.budgetUsage >= 1.0,
+      totalUsage: stats.budgetUsage,
+      categories: [],
+    };
+
+    // 카테고리별 예산 초과 체크
+    groupedStats.groups.forEach(group => {
+      const categoryBudget = budget.categories[group.id] || 0;
+      if (categoryBudget > 0) {
+        const usage = group.amount / categoryBudget;
+        if (usage >= 0.8) { // 80% 이상 사용 시 경고
+          overruns.categories.push({
+            categoryId: group.id,
+            categoryName: group.name,
+            amount: group.amount,
+            budget: categoryBudget,
+            usage,
+            isOverrun: usage >= 1.0,
+          });
+        }
+      }
+    });
+
+    return overruns;
+  },
+
+  // TOP N 카테고리 가져오기
+  getTopCategories: (yearMonth, limit = 3) => {
+    const groupedStats = get().getGroupedStatistics(yearMonth);
+    return groupedStats.groups
+      .filter(group => group.amount > 0)
+      .slice(0, limit)
+      .map((group, index) => ({
+        rank: index + 1,
+        ...group,
+      }));
+  },
 }));
 
 export default useWalletStore;
