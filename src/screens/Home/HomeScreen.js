@@ -205,11 +205,11 @@ const HomeScreen = () => {
             <View style={styles.progressHeader}>
               <AppText variant="body1">💧 수분 섭취</AppText>
               <AppText variant="body2" color="water">
-                {todayRecord.water}ml / {settings.dailyWaterGoal}ml
+                {todayRecord.water}ml / {settings.dailyWaterGoal || 2000}ml
               </AppText>
             </View>
             <AppProgressBar
-              progress={todayRecord.water / settings.dailyWaterGoal}
+              progress={settings.dailyWaterGoal > 0 ? todayRecord.water / settings.dailyWaterGoal : 0}
               colorTheme="water"
               height={8}
             />
@@ -312,7 +312,7 @@ const HomeScreen = () => {
               
               <View style={styles.summaryItem}>
                 <AppText variant="h2" color="primary">
-                  {Math.round((todayRecord.water / settings.dailyWaterGoal) * 100)}%
+                  {settings.dailyWaterGoal > 0 ? Math.round((todayRecord.water / settings.dailyWaterGoal) * 100) : 0}%
                 </AppText>
                 <AppText variant="caption" color="textSecondary">오늘 수분</AppText>
               </View>
